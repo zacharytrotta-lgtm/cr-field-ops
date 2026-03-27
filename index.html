@@ -801,7 +801,12 @@ function openEditVisit(visitId){
 function renderShops(){
   const el=document.getElementById('pg-shops');
   let h='<h2 style="margin-bottom:12px">Manage Shops</h2>';
-  h+='<button class="btn btn-primary btn-block" id="add-shop" style="margin-bottom:12px">+ ADD SHOP</button>';
+  h+='<div style="display:flex;gap:6px;margin-bottom:12px">';
+  h+='<button class="btn btn-primary" id="add-shop" style="flex:1">+ ADD SHOP</button>';
+  h+='<button class="btn btn-secondary" id="export-data">EXPORT</button>';
+  h+='<button class="btn btn-secondary" id="import-data">IMPORT</button>';
+  h+='<input type="file" id="import-file" accept=".json" style="display:none">';
+  h+='</div>';
 
   S.shops.forEach(s=>{
     h+='<div class="card" id="shop-card-'+esc(s.id)+'">';
@@ -821,6 +826,29 @@ function renderShops(){
   el.innerHTML=h;
 
   document.getElementById('add-shop').addEventListener('click',()=>openShopModal());
+  document.getElementById('export-data').addEventListener('click',()=>{
+    const blob=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='cr-field-ops-backup.json';a.click();
+    URL.revokeObjectURL(url);toast('Data exported');
+  });
+  document.getElementById('import-data').addEventListener('click',()=>{
+    document.getElementById('import-file').click();
+  });
+  document.getElementById('import-file').addEventListener('change',e=>{
+    const file=e.target.files[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const imported=JSON.parse(ev.target.result);
+        if(!imported.shops){toast('Invalid backup file',true);return}
+        S=imported;save();
+        toast('Data imported — reloading...');
+        setTimeout(()=>location.reload(),1000);
+      }catch(err){toast('Failed to read file: '+err.message,true)}
+    };
+    reader.readAsText(file);
+  });
   el.querySelectorAll('.edit-shop').forEach(btn=>{
     btn.addEventListener('click',()=>{
       const s=S.shops.find(x=>x.id===btn.dataset.id);
