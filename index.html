@@ -2,1140 +2,1184 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>CR Field Ops</title>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  :root {
-    --bg:#0d0f12;--surface:#161a20;--surface2:#1e2330;--border:#2a3040;
-    --accent:#e8a020;--accent2:#3b82f6;--danger:#ef4444;--warn:#f59e0b;
-    --ok:#22c55e;--text:#e2e8f0;--muted:#64748b;
-    --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--display:'Rajdhani',sans-serif;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;font-size:14px;}
-
-  /* HEADER */
-  .header{background:var(--surface);border-bottom:2px solid var(--accent);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
-  .logo{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:2px;color:var(--accent);}
-  .logo span{color:var(--text);}
-  .header-date{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;}
-
-  /* TABS */
-  .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none;}
-  .tab{flex:1;padding:10px 3px;text-align:center;font-family:var(--display);font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
-  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-
-  .page{display:none;padding:16px;}
-  .page.active{display:block;}
-
-  /* DASHBOARD */
-  .overview-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
-  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;}
-  .stat-label{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
-  .stat-value{font-family:var(--display);font-size:28px;font-weight:700;line-height:1;}
-  .stat-value.danger{color:var(--danger);}.stat-value.warn{color:var(--warn);}.stat-value.ok{color:var(--ok);}
-  .section-title{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;}
-  .shop-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;}
-  .shop-card.status-danger{border-left-color:var(--danger);}.shop-card.status-warn{border-left-color:var(--warn);}.shop-card.status-ok{border-left-color:var(--ok);}
-  .shop-info{flex:1;min-width:0;}
-  .shop-name{font-family:var(--display);font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .shop-meta{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;}
-  .shop-days{font-family:var(--display);font-size:22px;font-weight:700;text-align:right;}
-  .shop-days.danger{color:var(--danger);}.shop-days.warn{color:var(--warn);}.shop-days.ok{color:var(--ok);}.shop-days.never{color:var(--muted);font-size:13px;}
-  .days-label{font-family:var(--mono);font-size:9px;color:var(--muted);text-align:right;}
-  .log-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:5px 10px;font-family:var(--display);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;margin-top:4px;display:block;}
-
-  /* WEEK PLANNER */
-  .week-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .nav-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:6px 12px;font-family:var(--mono);font-size:14px;cursor:pointer;}
-  .week-label{font-family:var(--mono);font-size:12px;color:var(--muted);}
-  .week-controls{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;}
-  .wc-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;margin-bottom:6px;}
-  .wc-note{font-size:9px;color:var(--border);}
-  .chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
-  .shop-chip{padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-family:var(--mono);font-size:11px;cursor:pointer;}
-  .shop-chip.selected{border-color:var(--accent);background:rgba(232,160,32,0.15);color:var(--accent);}
-  .day-chip{padding:6px 10px;border-radius:4px;border:1px solid var(--accent2);background:rgba(59,130,246,0.08);color:var(--accent2);font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;}
-  .day-chip.selected{background:var(--accent2);color:#fff;}
-
-  /* SUGGEST BUTTONS */
-  .suggest-row{display:flex;gap:8px;margin-bottom:14px;}
-  .week-suggest-btn{flex:2;background:var(--surface2);border:1px solid var(--accent);color:var(--accent);border-radius:6px;padding:12px 8px;font-family:var(--display);font-size:13px;font-weight:600;letter-spacing:1px;cursor:pointer;}
-  .replan-btn{flex:1;background:var(--surface2);border:1px solid var(--accent2);color:var(--accent2);border-radius:6px;padding:12px 8px;font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:1px;cursor:pointer;}
-
-  .ai-thinking{display:none;text-align:center;padding:20px;color:var(--muted);font-family:var(--mono);font-size:12px;}
-
-  /* OPTION CARDS */
-  .options-container{margin-bottom:14px;}
-  .option-card{background:var(--surface2);border:1px solid var(--accent2);border-radius:6px;padding:14px;margin-bottom:10px;}
-  .option-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-  .option-label{font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:1px;color:var(--accent);}
-  .option-approach{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;}
-  .option-text{font-size:13px;line-height:1.6;white-space:pre-wrap;margin-bottom:10px;}
-  .refine-row{display:flex;gap:6px;}
-  .refine-input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:8px 10px;font-family:var(--sans);font-size:13px;outline:none;}
-  .refine-input:focus{border-color:var(--accent);}
-  .refine-btn{background:var(--accent);color:var(--bg);border:none;border-radius:4px;padding:8px 12px;font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap;}
-  .refine-thinking{font-family:var(--mono);font-size:11px;color:var(--muted);padding:6px 0;display:none;}
-
-  /* DAY BLOCKS */
-  .day-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;}
-  .day-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;}
-  .day-name{font-family:var(--display);font-size:15px;font-weight:700;letter-spacing:1px;}
-  .day-name.today{color:var(--accent);}
-  .badge-row{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;align-items:center;}
-  .day-badge{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:3px;}
-  .day-badge.wfh{background:rgba(59,130,246,0.2);color:var(--accent2);}
-  .day-badge.req{background:rgba(232,160,32,0.2);color:var(--accent);}
-  .day-badge.blocked{background:rgba(100,116,139,0.15);color:var(--muted);}
-  .day-body{padding:10px 12px;}
-  .day-quick{display:flex;gap:6px;margin-bottom:10px;}
-  .dq-btn{flex:1;padding:8px 4px;border-radius:4px;font-family:var(--display);font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer;text-align:center;border:1px solid transparent;}
-  .dq-wfh{border-color:var(--accent2);background:rgba(59,130,246,0.08);color:var(--accent2);}
-  .dq-wfh.on{background:var(--accent2);color:#fff;}
-  .dq-req{border-color:var(--accent);background:rgba(232,160,32,0.08);color:var(--accent);}
-  .day-event{display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
-  .day-event:last-child{border-bottom:none;}
-  .ev-time{font-family:var(--mono);font-size:10px;color:var(--muted);min-width:50px;padding-top:2px;}
-  .ev-dot{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0;}
-  .ev-dot.fixed{background:var(--accent2);}.ev-dot.shop{background:var(--ok);}.ev-dot.personal{background:var(--muted);}.ev-dot.req{background:var(--accent);}
-  .ev-text{font-size:13px;flex:1;}
-  .ev-del{background:transparent;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0 2px;flex-shrink:0;}
-  .add-event-btn{width:100%;padding:8px;background:transparent;border:1px dashed var(--border);border-radius:4px;color:var(--muted);font-family:var(--display);font-size:12px;letter-spacing:1px;cursor:pointer;margin-top:8px;}
-
-  /* UPCOMING / HISTORY / MANAGE */
-  .upcoming-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent2);border-radius:6px;padding:12px;margin-bottom:8px;}
-  .upcoming-date{font-family:var(--mono);font-size:10px;color:var(--accent2);margin-bottom:4px;}
-  .upcoming-title{font-family:var(--display);font-size:15px;font-weight:600;}
-  .upcoming-note{font-size:12px;color:var(--muted);margin-top:4px;}
-  .history-item{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
-  .history-shop{font-family:var(--display);font-size:15px;font-weight:600;}
-  .history-date{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;}
-  .history-note{font-size:12px;color:var(--muted);margin-top:3px;}
-  .h-actions{display:flex;gap:6px;flex-shrink:0;}
-  .edit-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:4px 8px;font-family:var(--display);font-size:11px;font-weight:600;cursor:pointer;}
-  .del-btn{background:transparent;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;}
-  .manage-card{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
-  .manage-name{font-family:var(--display);font-size:15px;font-weight:600;}
-  .manage-loc{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:2px;}
-  .remove-btn{background:transparent;border:1px solid var(--danger);color:var(--danger);border-radius:4px;padding:5px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;}
-  .add-btn{width:100%;padding:12px;background:transparent;border:1px dashed var(--accent);border-radius:6px;color:var(--accent);font-family:var(--display);font-size:14px;font-weight:600;letter-spacing:1px;cursor:pointer;margin-top:4px;}
-
-  /* RULES TAB */
-  .rules-info{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:14px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.6;}
-  .rule-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:6px;padding:12px;margin-bottom:8px;}
-  .rule-card.disabled{border-left-color:var(--border);opacity:0.5;}
-  .rule-top{display:flex;align-items:flex-start;gap:8px;}
-  .rule-text{flex:1;font-size:13px;line-height:1.5;}
-  .rule-actions{display:flex;gap:5px;flex-shrink:0;}
-  .rule-toggle{border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:10px;cursor:pointer;background:transparent;}
-  .rule-toggle.active{border:1px solid var(--ok);color:var(--ok);}
-  .rule-toggle.inactive{border:1px solid var(--muted);color:var(--muted);}
-  .rule-edit-btn{background:transparent;border:1px solid var(--accent);color:var(--accent);border-radius:4px;padding:3px 8px;font-family:var(--mono);font-size:10px;cursor:pointer;}
-  .rule-del-btn{background:transparent;border:none;color:var(--muted);font-size:15px;cursor:pointer;padding:0 3px;}
-  .constraint-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--accent2);border-radius:6px;padding:12px;margin-bottom:8px;}
-  .constraint-card.disabled{border-left-color:var(--border);opacity:0.5;}
-
-  /* MODALS */
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-end;}
-  .modal-overlay.open{display:flex;}
-  .modal{background:var(--surface);border-top:2px solid var(--accent);border-radius:12px 12px 0 0;padding:20px 16px 36px;width:100%;max-height:85vh;overflow-y:auto;}
-  .modal-title{font-family:var(--display);font-size:20px;font-weight:700;letter-spacing:1px;margin-bottom:16px;}
-  .form-group{margin-bottom:14px;}
-  .form-label{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:block;}
-  .form-input,.form-select,.form-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:10px 12px;font-family:var(--sans);font-size:14px;outline:none;}
-  .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent);}
-  .form-textarea{min-height:80px;resize:vertical;}
-  .btn-primary{width:100%;background:var(--accent);color:var(--bg);border:none;border-radius:4px;padding:12px;font-family:var(--display);font-size:16px;font-weight:700;letter-spacing:2px;cursor:pointer;margin-top:4px;}
-  .btn-secondary{width:100%;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:4px;padding:10px;font-family:var(--display);font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;}
-
-  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--ok);color:#000;padding:10px 20px;border-radius:6px;font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:1px;z-index:300;transition:transform 0.3s;white-space:nowrap;}
-  .toast.show{transform:translateX(-50%) translateY(0);}
-  .empty-state{text-align:center;padding:40px 20px;color:var(--muted);font-family:var(--mono);font-size:12px;}
-  .dots::after{content:'';animation:dots 1.5s infinite;}
-  @keyframes dots{0%{content:''}33%{content:'.'}66%{content:'..'}100%{content:'...'}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1a1a2e;color:#e0e0e0;min-height:100vh;display:flex;flex-direction:column;overflow-x:hidden}
+/* TABS */
+.tab-bar{display:flex;background:#16213e;border-top:1px solid #0f3460;position:fixed;bottom:0;left:0;right:0;z-index:100}
+.tab-btn{flex:1;padding:10px 2px;text-align:center;font-size:11px;font-weight:600;color:#7a7a9a;background:none;border:none;cursor:pointer;transition:color .2s}
+.tab-btn.active{color:#e94560;border-top:2px solid #e94560}
+.page{display:none;padding:12px 12px 70px 12px;flex:1}
+.page.active{display:block}
+/* CARDS */
+.card{background:#16213e;border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid #0f3460}
+.card-title{font-weight:700;font-size:15px;margin-bottom:4px}
+.card-sub{font-size:12px;color:#7a7a9a}
+.card-meta{font-size:12px;margin-top:6px;color:#a0a0c0}
+/* STATUS COLORS */
+.card.green{border-left-color:#2ecc71}.card.yellow{border-left-color:#f39c12}.card.red{border-left-color:#e74c3c}.card.grey{border-left-color:#555}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-green{background:#1a3a2a;color:#2ecc71}.badge-yellow{background:#3a3520;color:#f39c12}.badge-red{background:#3a1a1a;color:#e74c3c}.badge-grey{background:#2a2a2a;color:#888}
+/* BUTTONS */
+.btn{padding:10px 16px;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:background .2s}
+.btn-primary{background:#e94560;color:#fff}.btn-primary:hover{background:#c73e54}
+.btn-secondary{background:#0f3460;color:#e0e0e0}.btn-secondary:hover{background:#1a4a80}
+.btn-danger{background:#5a1a1a;color:#e74c3c}.btn-danger:hover{background:#7a2a2a}
+.btn-sm{padding:6px 10px;font-size:11px}
+.btn-block{display:block;width:100%;margin-top:8px}
+/* FORMS */
+input,select,textarea{background:#0f1a35;border:1px solid #2a3a5a;border-radius:6px;padding:10px;color:#e0e0e0;font-size:14px;width:100%}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#e94560}
+label{display:block;font-size:12px;color:#7a7a9a;margin:8px 0 4px}
+/* MODAL */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;padding:16px}
+.modal-overlay.show{display:flex}
+.modal{background:#16213e;border-radius:12px;padding:20px;width:100%;max-width:400px;max-height:85vh;overflow-y:auto}
+.modal h3{margin-bottom:12px;color:#e94560}
+/* WEEK */
+.week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.week-nav h3{font-size:15px}
+.day-block{background:#16213e;border-radius:10px;margin-bottom:8px;overflow:hidden}
+.day-header{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer}
+.day-header h4{font-size:14px}
+.day-body{display:none;padding:0 14px 14px;border-top:1px solid #0f3460}
+.day-body.open{display:block}
+.day-badges{display:flex;gap:4px;flex-wrap:wrap}
+.chip{display:inline-block;padding:4px 10px;border-radius:14px;font-size:11px;cursor:pointer;border:1px solid #2a3a5a;margin:2px;transition:all .2s;user-select:none}
+.chip.on{background:#e94560;border-color:#e94560;color:#fff}
+.chip.wfh{background:#3498db;border-color:#3498db;color:#fff}
+/* RULES */
+.rule-section{margin-bottom:20px}
+.rule-section h3{font-size:14px;margin-bottom:8px;padding-left:4px}
+.rule-card{background:#0f1a35;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px}
+.rule-card.disabled{opacity:.4}
+.rule-text{flex:1;font-size:13px;line-height:1.4}
+.rule-actions{display:flex;gap:4px;flex-shrink:0}
+.rule-section.constraints .rule-card{border-left:3px solid #3498db}
+.rule-section.routing .rule-card{border-left:3px solid #e67e22}
+.rule-section.traffic .rule-card{border-left:3px solid #2ecc71}
+/* PROMPT PREVIEW */
+.prompt-box{background:#0a0f1e;border:1px solid #2a3a5a;border-radius:8px;padding:12px;margin:10px 0;max-height:50vh;overflow-y:auto}
+.prompt-box textarea{min-height:200px;font-size:12px;font-family:monospace}
+/* TOAST */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#2ecc71;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:300;opacity:0;transition:opacity .3s}
+.toast.show{opacity:1}
+.toast.error{background:#e74c3c}
+/* INLINE CONFIRM */
+.confirm-row{display:flex;gap:6px;margin-top:6px;align-items:center}
+.confirm-row .msg{font-size:12px;color:#e74c3c}
+/* HISTORY FILTER */
+.filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.filter-row select{width:auto;flex:1}
+/* EVENT ROW */
+.ev-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #0f3460;font-size:13px}
+.ev-row:last-child{border-bottom:none}
+/* WEEK NEEDS */
+.week-needs{background:#0f1a35;border-radius:10px;padding:12px;margin-bottom:12px}
+.week-needs h4{font-size:12px;color:#7a7a9a;margin-bottom:6px}
+.wfh-days{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.wfh-chip{padding:4px 10px;border-radius:14px;font-size:11px;cursor:pointer;border:1px solid #2a3a5a;user-select:none;transition:all .2s}
+.wfh-chip.on{background:#3498db;border-color:#3498db;color:#fff}
+/* PERF */
+.perf-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:16px}
+.perf-row{background:#16213e;border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.perf-shop{font-weight:600;font-size:13px;flex:1;min-width:120px}
+.perf-checks{display:flex;gap:10px}
+.perf-check{display:flex;align-items:center;gap:4px;font-size:11px;color:#7a7a9a}
+.perf-check input[type=checkbox]{width:auto;accent-color:#2ecc71}
+.perf-check.hit{color:#2ecc71}.perf-check.miss{color:#e74c3c}
+.perf-visits{font-size:12px;color:#a0a0c0;min-width:50px;text-align:right}
+.period-select{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.chart-container{background:#16213e;border-radius:10px;padding:14px;margin-bottom:12px;position:relative;height:280px}
+.perf-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.perf-stat{background:#16213e;border-radius:8px;padding:12px;text-align:center}
+.perf-stat .val{font-size:22px;font-weight:700}.perf-stat .lbl{font-size:11px;color:#7a7a9a;margin-top:2px}
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="logo">CR<span> // FIELD OPS</span></div>
-  <div class="header-date" id="hDate"></div>
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="week">WEEK</button>
+  <button class="tab-btn" data-tab="status">STATUS</button>
+  <button class="tab-btn" data-tab="perf">PERF</button>
+  <button class="tab-btn" data-tab="upcoming">UPCOMING</button>
+  <button class="tab-btn" data-tab="rules">RULES</button>
+  <button class="tab-btn" data-tab="shops">SHOPS</button>
+  <button class="tab-btn" data-tab="history">HISTORY</button>
 </div>
 
-<div class="tabs">
-  <div class="tab active" onclick="switchTab('dashboard')">STATUS</div>
-  <div class="tab" onclick="switchTab('planner')">WEEK</div>
-  <div class="tab" onclick="switchTab('upcoming')">UPCOMING</div>
-  <div class="tab" onclick="switchTab('history')">HISTORY</div>
-  <div class="tab" onclick="switchTab('manage')">SHOPS</div>
-  <div class="tab" onclick="switchTab('rules')">RULES</div>
-</div>
-
-<!-- DASHBOARD -->
-<div class="page active" id="page-dashboard">
-  <div class="overview-grid">
-    <div class="stat-card"><div class="stat-label">OVERDUE THIS MONTH</div><div class="stat-value danger" id="s-overdue">-</div></div>
-    <div class="stat-card"><div class="stat-label">VISITED THIS MONTH</div><div class="stat-value ok" id="s-visited">-</div></div>
-    <div class="stat-card"><div class="stat-label">DUE SOON &lt;7 DAYS</div><div class="stat-value warn" id="s-soon">-</div></div>
-    <div class="stat-card"><div class="stat-label">TOTAL SHOPS</div><div class="stat-value" id="s-total">-</div></div>
-  </div>
-  <div class="section-title">SHOP STATUS</div>
-  <div id="shopList"></div>
-</div>
-
-<!-- WEEK PLANNER -->
-<div class="page" id="page-planner">
-  <div class="week-header">
-    <button class="nav-btn" onclick="changeWeek(-1)">&#8249;</button>
-    <div class="week-label" id="weekLabel"></div>
-    <button class="nav-btn" onclick="changeWeek(1)">&#8250;</button>
-  </div>
-  <div class="week-controls">
-    <div class="wc-label">SHOPS NEEDED THIS WEEK <span class="wc-note">— no specific day, just sometime this week</span></div>
-    <div class="chip-row" id="weekShopChips"></div>
-    <div class="wc-label">WFH DAYS — tap to toggle</div>
-    <div class="chip-row" id="wfhChips"></div>
-  </div>
-  <div class="suggest-row">
-    <button class="week-suggest-btn" onclick="suggestWeek()">&#9889; GENERATE SCHEDULE</button>
-    <button class="replan-btn" onclick="openReplan()">&#8635; MID-WEEK REPLAN</button>
-  </div>
-  <button style="width:100%;padding:9px;background:transparent;border:1px dashed var(--muted);border-radius:6px;color:var(--muted);font-family:var(--mono);font-size:11px;letter-spacing:1px;cursor:pointer;margin-bottom:14px;" onclick="previewPrompt()">&#128065; PREVIEW &amp; EDIT PROMPT BEFORE GENERATING</button>
-  <div id="promptPreview" style="display:none;margin-bottom:14px;">
-    <div style="background:var(--surface);border:1px solid var(--accent);border-radius:6px;overflow:hidden;">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);">
-        <span style="color:var(--accent);font-family:var(--display);font-size:13px;font-weight:700;letter-spacing:1px;">PROMPT PREVIEW &amp; EDITOR</span>
-        <button onclick="document.getElementById('promptPreview').style.display='none'" style="background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:16px;">&#10005;</button>
-      </div>
-      <div style="padding:10px 14px 6px;font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.5;">Edit anything below before submitting. Changes here are one-time only and won't affect your saved rules.</div>
-      <textarea id="promptPreviewText" style="width:100%;min-height:300px;max-height:55vh;background:var(--bg);border:none;border-top:1px solid var(--border);color:var(--text);padding:14px;font-family:var(--mono);font-size:11px;line-height:1.7;resize:vertical;outline:none;"></textarea>
-      <div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;gap:8px;">
-        <button onclick="submitEditedPrompt()" style="flex:2;background:var(--accent);color:var(--bg);border:none;border-radius:4px;padding:10px;font-family:var(--display);font-size:14px;font-weight:700;letter-spacing:1px;cursor:pointer;">&#9889; SUBMIT THIS PROMPT</button>
-        <button onclick="resetPromptPreview()" style="flex:1;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:10px;font-family:var(--display);font-size:12px;font-weight:600;cursor:pointer;">RESET</button>
-      </div>
-    </div>
-  </div>
-  <div class="ai-thinking" id="aiThinking"><span class="dots">Generating schedule options</span></div>
-  <div class="options-container" id="optionsContainer"></div>
-  <div id="weekDays"></div>
-</div>
-
-<!-- UPCOMING -->
-<div class="page" id="page-upcoming">
-  <div class="section-title">MULTI-DAY COMMITMENTS</div>
-  <div id="upcomingList"></div>
-  <button class="add-btn" onclick="openM('mUpcoming')">+ ADD COMMITMENT</button>
-</div>
-
-<!-- HISTORY -->
-<div class="page" id="page-history">
-  <div class="section-title">VISIT HISTORY</div>
-  <div id="historyList"></div>
-</div>
-
-<!-- MANAGE SHOPS -->
-<div class="page" id="page-manage">
-  <div class="section-title">YOUR SHOPS</div>
-  <div id="manageList"></div>
-  <button class="add-btn" onclick="openAddShop()">+ ADD SHOP</button>
-</div>
-
-<!-- RULES -->
-<div class="page" id="page-rules">
-  <div class="rules-info">Everything below is sent verbatim to the AI when you generate a schedule. What you see here is exactly what it gets told — nothing hidden. Toggle, edit, delete, or add rules and constraints freely.</div>
-
-  <div class="section-title">PERSONAL CONSTRAINTS</div>
-  <div id="constraintsList"></div>
-  <button class="add-btn" style="border-color:var(--accent2);color:var(--accent2);margin-bottom:20px;" onclick="openAddConstraint()">+ ADD CONSTRAINT</button>
-
-  <div class="section-title">ROUTING RULES</div>
-  <div id="rulesList"></div>
-  <button class="add-btn" onclick="openAddRule()">+ ADD RULE</button>
-
-  <div style="margin-top:20px;"></div>
-  <div class="section-title">TRAFFIC RULES</div>
-  <div id="trafficList"></div>
-  <button class="add-btn" style="border-color:var(--ok);color:var(--ok);" onclick="openAddTraffic()">+ ADD TRAFFIC RULE</button>
-</div>
+<!-- PAGES -->
+<div id="pg-status" class="page"></div>
+<div id="pg-week" class="page active"></div>
+<div id="pg-upcoming" class="page"></div>
+<div id="pg-history" class="page"></div>
+<div id="pg-shops" class="page"></div>
+<div id="pg-rules" class="page"></div>
+<div id="pg-perf" class="page"></div>
 
 <!-- MODALS -->
-<div class="modal-overlay" id="mLog">
-  <div class="modal">
-    <div class="modal-title" id="mLogTitle">LOG VISIT</div>
-    <div class="form-group"><label class="form-label">DATE</label><input type="date" class="form-input" id="mLogDate"></div>
-    <div class="form-group"><label class="form-label">NOTES (OPTIONAL)</label><textarea class="form-textarea" id="mLogNotes" placeholder="What did you cover?"></textarea></div>
-    <button class="btn-primary" onclick="confirmLog()">LOG VISIT</button>
-    <button class="btn-secondary" onclick="closeM('mLog')">CANCEL</button>
-  </div>
+<div id="modal-overlay" class="modal-overlay">
+  <div id="modal-content" class="modal"></div>
 </div>
 
-<div class="modal-overlay" id="mEdit">
-  <div class="modal">
-    <div class="modal-title">EDIT VISIT</div>
-    <div class="form-group"><label class="form-label">DATE</label><input type="date" class="form-input" id="mEditDate"></div>
-    <div class="form-group"><label class="form-label">NOTES</label><textarea class="form-textarea" id="mEditNotes" placeholder="What did you cover?"></textarea></div>
-    <button class="btn-primary" onclick="confirmEdit()">SAVE CHANGES</button>
-    <button class="btn-secondary" onclick="closeM('mEdit')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mDayReq">
-  <div class="modal">
-    <div class="modal-title" id="mDayReqTitle">REQUIRED VISIT</div>
-    <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:12px;">Select shop(s) you must visit on this specific day:</div>
-    <div id="mDayReqChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
-    <div class="form-group">
-      <label class="form-label">TIMING PREFERENCE</label>
-      <select class="form-select" id="mDayReqTiming">
-        <option value="">No preference</option>
-        <option value="am">Morning visit (AM)</option>
-        <option value="pm">Afternoon visit (PM)</option>
-        <option value="arrive_by">Must arrive by a specific time</option>
-        <option value="leave_by">Must leave by a specific time</option>
-        <option value="after">Must start after a specific time</option>
-      </select>
-    </div>
-    <div class="form-group" id="mDayReqTimeGroup" style="display:none;">
-      <label class="form-label" id="mDayReqTimeLabel">TIME</label>
-      <input type="time" class="form-input" id="mDayReqTime">
-    </div>
-    <button class="btn-primary" onclick="confirmDayReq()">CONFIRM</button>
-    <button class="btn-secondary" onclick="closeM('mDayReq')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mEvent">
-  <div class="modal">
-    <div class="modal-title">ADD EVENT</div>
-    <div class="form-group"><label class="form-label">DATE</label><input type="date" class="form-input" id="mEvDate"></div>
-    <div class="form-group"><label class="form-label">DESCRIPTION</label><input type="text" class="form-input" id="mEvDesc" placeholder="e.g. Team call, Client meeting"></div>
-    <div class="form-group"><label class="form-label">TYPE</label>
-      <select class="form-select" id="mEvType">
-        <option value="fixed">Meeting / Call</option>
-        <option value="shop">Shop Visit</option>
-        <option value="personal">Personal</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">TIMING</label>
-      <select class="form-select" id="mEvTiming" onchange="toggleEvTimeInput()">
-        <option value="am">Morning (AM)</option>
-        <option value="pm">Afternoon (PM)</option>
-        <option value="at">Starts at specific time</option>
-        <option value="by">Must be done by a specific time</option>
-        <option value="after">Must start after a specific time</option>
-      </select>
-    </div>
-    <div class="form-group" id="mEvTimeGroup">
-      <label class="form-label" id="mEvTimeLabel">TIME</label>
-      <input type="time" class="form-input" id="mEvTime">
-    </div>
-    <button class="btn-primary" onclick="confirmEvent()">ADD EVENT</button>
-    <button class="btn-secondary" onclick="closeM('mEvent')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mShop">
-  <div class="modal">
-    <div class="modal-title">ADD SHOP</div>
-    <div class="form-group"><label class="form-label">SHOP NAME</label><input type="text" class="form-input" id="mShopName" placeholder="e.g. Frederick"></div>
-    <div class="form-group"><label class="form-label">LOCATION / ADDRESS</label><input type="text" class="form-input" id="mShopLoc" placeholder="City, State"></div>
-    <div class="form-group"><label class="form-label">EST. DRIVE FROM CANTON (MIN)</label><input type="number" class="form-input" id="mShopDrive" placeholder="e.g. 60"></div>
-    <button class="btn-primary" onclick="confirmShop()">ADD SHOP</button>
-    <button class="btn-secondary" onclick="closeM('mShop')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mUpcoming">
-  <div class="modal">
-    <div class="modal-title">ADD COMMITMENT</div>
-    <div class="form-group"><label class="form-label">TITLE</label><input type="text" class="form-input" id="mUpTitle" placeholder="e.g. Regional Conference"></div>
-    <div class="form-group"><label class="form-label">START DATE</label><input type="date" class="form-input" id="mUpStart"></div>
-    <div class="form-group"><label class="form-label">END DATE</label><input type="date" class="form-input" id="mUpEnd"></div>
-    <div class="form-group"><label class="form-label">NOTES</label><input type="text" class="form-input" id="mUpNote" placeholder="Optional"></div>
-    <button class="btn-primary" onclick="confirmUpcoming()">ADD</button>
-    <button class="btn-secondary" onclick="closeM('mUpcoming')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mRule">
-  <div class="modal">
-    <div class="modal-title" id="mRuleTitle">ADD ROUTING RULE</div>
-    <div class="form-group"><label class="form-label">RULE TEXT</label>
-      <textarea class="form-textarea" id="mRuleText" placeholder="e.g. ABD Gaithersburg and ABD Frederick are usually visited on the same day"></textarea>
-    </div>
-    <button class="btn-primary" onclick="confirmRule()">SAVE RULE</button>
-    <button class="btn-secondary" onclick="closeM('mRule')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mConstraint">
-  <div class="modal">
-    <div class="modal-title" id="mConstraintTitle">ADD CONSTRAINT</div>
-    <div class="form-group"><label class="form-label">CONSTRAINT TEXT</label>
-      <textarea class="form-textarea" id="mConstraintText" placeholder="e.g. Must leave any shop by 3pm to get home before daycare pickup"></textarea>
-    </div>
-    <button class="btn-primary" onclick="confirmConstraint()">SAVE</button>
-    <button class="btn-secondary" onclick="closeM('mConstraint')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mReplan">
-  <div class="modal">
-    <div class="modal-title">MID-WEEK REPLAN</div>
-    <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:14px;">Select days that are already done or locked in. The AI will only replan the remaining days.</div>
-    <div id="replanDayChips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>
-    <div class="form-group" style="margin-top:14px;"><label class="form-label">WHAT CHANGED? (optional)</label>
-      <textarea class="form-textarea" id="replanNote" placeholder="e.g. I visited Frederick today instead of Gaithersburg, need to fit Gaithersburg later this week"></textarea>
-    </div>
-    <button class="btn-primary" onclick="confirmReplan()">REPLAN REMAINING DAYS</button>
-    <button class="btn-secondary" onclick="closeM('mReplan')">CANCEL</button>
-  </div>
-</div>
-
-<div class="modal-overlay" id="mTraffic">
-  <div class="modal">
-    <div class="modal-title" id="mTrafficTitle">ADD TRAFFIC RULE</div>
-    <div class="form-group"><label class="form-label">RULE TEXT</label>
-      <textarea class="form-textarea" id="mTrafficText" placeholder="e.g. I-270 northbound adds 15 min during morning rush due to ongoing construction at exit 18"></textarea>
-    </div>
-    <button class="btn-primary" onclick="confirmTraffic()">SAVE</button>
-    <button class="btn-secondary" onclick="closeM('mTraffic')">CANCEL</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<!-- TOAST -->
+<div id="toast" class="toast"></div>
 
 <script>
-// ─── STATE ────────────────────────────────────────────────────────────────────
-var SKEY='crfieldops_v4';
-var _idCounter=0;
-function uid(prefix){return (prefix||'id')+Date.now()+(++_idCounter);}
+// ========== UTILITIES ==========
+let _uid=0;
+function uid(){return Date.now().toString(36)+'_'+(++_uid)}
+function esc(s){if(!s)return '';const d=document.createElement('div');d.textContent=s;return d.innerHTML}
+function isoDate(s){if(!s)return '';const d=new Date(s);if(isNaN(d))return s;return d.toISOString().slice(0,10)}
+function toast(msg,isErr){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(isErr?' error':'')+' show';setTimeout(()=>t.className='toast',2500)}
 
-// HTML escape — prevents XSS when rendering user text as innerHTML
-function esc(str){
-  return String(str||'')
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;')
-    .replace(/'/g,'&#39;');
-}
+// ========== STATE ==========
+const DEFAULT_STATE={
+  shops:[
+    {id:'s1',name:'ABD Frederick',location:'5702 Industry Ln, Frederick MD',driveMin:55,freq:'2x/month'},
+    {id:'s2',name:'ABD Gaithersburg',location:'7559 Rickenbacker Dr, Gaithersburg MD',driveMin:60,freq:'2x/month'},
+    {id:'s3',name:'ABD Bethesda',location:'4709 Chase Ave, Bethesda MD',driveMin:55,freq:'0-1x/month'},
+    {id:'s4',name:'Suburban Herndon',location:'765 Center St, Herndon VA',driveMin:75,freq:'1-2x/month'},
+    {id:'s5',name:'Suburban Fredericksburg',location:'136 Fleming St, Fredericksburg VA',driveMin:90,freq:'1x/month'},
+    {id:'s6',name:'T-Body',location:'643 Barbour Pike, Mt. Clare WV',driveMin:150,freq:'1x/month'},
+    {id:'s7',name:'CarCraft Collision',location:'7616 Backlick Rd, Springfield VA',driveMin:60,freq:'1-2x/month'},
+    {id:'s8',name:"JR's Auto Body",location:'121 Mercedes Ct, Winchester VA',driveMin:90,freq:'1-2x/month'},
+    {id:'s9',name:"Bucky's Auto Body",location:'35 Restoration St, Martinsburg WV',driveMin:90,freq:'2x/month'}
+  ],
+  visits:[],
+  upcoming:[],
+  constraints:[
+    {id:uid(),text:"Based in Canton, Baltimore MD. Son dropped at daycare in Nottingham MD at 8am most days. Partner can cover drop off if needed, usually 2-4 times/week total between dropoff and pickup.",on:true},
+    {id:uid(),text:"Daycare pickup 5:00-5:45pm. Partner can cover pickup if needed — overnight stays or late returns are an option worth suggesting when it saves excessive driving.",on:true},
+    {id:uid(),text:"Leave any shop by 3pm latest on pickup days to allow time home and avoid peak traffic.",on:true},
+    {id:uid(),text:"2-3 hours at each shop per visit.",on:true},
+    {id:uid(),text:"Target at least 2 WFH days per week.",on:true},
+    {id:uid(),text:"On single-shop days, may return home after daycare dropoff (~30 min ride) to work and wait 30-90 min for morning traffic to clear before departing.",on:true},
+    {id:uid(),text:"For very distant shops (T-Body ~4hrs, Fredericksburg ~2.5-3hrs each way), suggest overnight nearby if it saves 7-8hrs driving in one day and partner can handle pickup. Flag as option, don't assume.",on:true}
+  ],
+  routing:[
+    {id:uid(),text:"T-Body (Mt. Clare WV) and Suburban Fredericksburg: visit once/month unless otherwise needed. Skip in weekly suggestions unless overdue or flagged.",on:true},
+    {id:uid(),text:"Any two of ABD Gaithersburg, ABD Frederick, ABD Bethesda are a natural same-day pair — close proximity and efficient routing.",on:true},
+    {id:uid(),text:"Bucky's (Martinsburg WV) and JR's (Winchester VA) are a natural same-day pair.",on:true},
+    {id:uid(),text:"ABD Frederick can alternatively pair with Bucky's or JR's instead of Gaithersburg.",on:true},
+    {id:uid(),text:"CarCraft (Springfield VA) and Suburban Herndon can be done in one day but less common — only suggest if both overdue or flagged.",on:true},
+    {id:uid(),text:"ABD Bethesda is visited less frequently. Deprioritize unless overdue.",on:true}
+  ],
+  traffic:[
+    {id:uid(),text:"Any commute out of Baltimore 6:30-8:45am or into Baltimore 3:45-6:30pm: add ~20 min. Includes daycare trips since it's north and requires going through/past the city.",on:true},
+    {id:uid(),text:"Any leg on I-495 or I-95 in DC/Northern VA area: add ~30 min to that leg.",on:true},
+    {id:uid(),text:"Driver uses standard major highway routes but will use live GPS to avoid issues. Don't overcompensate — apply adjustments once.",on:true}
+  ],
+  fiscalPeriods:[
+    {id:'fp1',name:'JAN 2026',start:'2026-01-01',end:'2026-01-31'},
+    {id:'fp2',name:'FEB 2026',start:'2026-02-01',end:'2026-02-28'},
+    {id:'fp3',name:'MAR 2026',start:'2026-03-01',end:'2026-04-04'},
+    {id:'fp4',name:'APR 2026',start:'2026-04-05',end:'2026-05-02'},
+    {id:'fp5',name:'MAY 2026',start:'2026-05-03',end:'2026-05-30'},
+    {id:'fp6',name:'JUN 2026',start:'2026-05-31',end:'2026-07-04'},
+    {id:'fp7',name:'JUL 2026',start:'2026-07-05',end:'2026-08-01'},
+    {id:'fp8',name:'AUG 2026',start:'2026-08-02',end:'2026-08-29'},
+    {id:'fp9',name:'SEP 2026',start:'2026-08-30',end:'2026-10-03'},
+    {id:'fp10',name:'OCT 2026',start:'2026-10-04',end:'2026-10-31'},
+    {id:'fp11',name:'NOV 2026',start:'2026-11-01',end:'2026-11-28'},
+    {id:'fp12',name:'DEC 2026',start:'2026-11-29',end:'2026-12-31'}
+  ],
+  perfData:[]
+};
 
-// Normalize any date string to YYYY-MM-DD ISO format, return null if invalid
-function isoDate(val){
-  if(!val)return null;
-  var d=new Date(val+'T12:00:00');
-  if(isNaN(d.getTime()))return null;
-  return d.toISOString().slice(0,10);
-}
-
+let S;
 function loadState(){
   try{
-    var raw=localStorage.getItem(SKEY);
-    if(!raw)return defS();
-    var parsed=JSON.parse(raw);
-    // Validate it looks like our data structure — partial recovery
-    if(typeof parsed!=='object'||parsed===null)return defS();
-    var d=defS();
-    // Restore each key if it's an array, otherwise fall back to default
-    ['shops','visits','events','upcoming','constraints','rules','traffic'].forEach(function(k){
-      parsed[k]=Array.isArray(parsed[k])?parsed[k]:d[k];
-    });
-    return parsed;
+    const raw=localStorage.getItem('crfo_state');
+    if(raw){
+      const parsed=JSON.parse(raw);
+      // Merge with defaults for any missing keys
+      S={...DEFAULT_STATE,...parsed};
+      if(!Array.isArray(S.shops)||!S.shops.length)S.shops=JSON.parse(JSON.stringify(DEFAULT_STATE.shops));
+      // Backfill freq from defaults onto saved shops missing it
+      S.shops.forEach(s=>{if(!s.freq){const def=DEFAULT_STATE.shops.find(d=>d.id===s.id);if(def)s.freq=def.freq}});
+      if(!Array.isArray(S.fiscalPeriods)||!S.fiscalPeriods.length)S.fiscalPeriods=JSON.parse(JSON.stringify(DEFAULT_STATE.fiscalPeriods));
+      if(!Array.isArray(S.perfData))S.perfData=[];
+      // Clean up: remove empties, remove gp, deduplicate, remove orphaned period refs
+      S.perfData=S.perfData.filter(r=>r.sales||r.ebitda);
+      S.perfData.forEach(r=>{delete r.gp});
+      const seen={};
+      S.perfData=S.perfData.filter(r=>{const k=r.periodId+'_'+r.shopId;if(seen[k])return false;seen[k]=true;return true});
+      const validPeriodIds=new Set(S.fiscalPeriods.map(p=>p.id));
+      S.perfData=S.perfData.filter(r=>validPeriodIds.has(r.periodId));
+      if(!Array.isArray(S.visits))S.visits=[];
+      if(!Array.isArray(S.upcoming))S.upcoming=[];
+      if(!Array.isArray(S.constraints))S.constraints=DEFAULT_STATE.constraints;
+      if(!Array.isArray(S.routing))S.routing=DEFAULT_STATE.routing;
+      if(!Array.isArray(S.traffic))S.traffic=DEFAULT_STATE.traffic;
+    } else {
+      S=JSON.parse(JSON.stringify(DEFAULT_STATE));
+    }
   }catch(e){
-    showStorageError('Failed to load saved data. Starting fresh.');
-    return defS();
+    console.error('State load error, using defaults:',e);
+    S=JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
 }
-
-var S=loadState();
 
 function save(){
-  try{
-    localStorage.setItem(SKEY,JSON.stringify(S));
-  }catch(e){
-    if(e.name==='QuotaExceededError'||e.code===22){
-      showStorageError('Storage full. Consider clearing old visit history to free space.');
-    } else {
-      showStorageError('Could not save. Your changes may not persist.');
+  try{localStorage.setItem('crfo_state',JSON.stringify(S))}
+  catch(e){toast('Storage error: '+e.message,true)}
+}
+
+// Week meta (per-week needs, WFH, events)
+function weekKey(d){const mon=getMonday(d);return 'crfo_w_'+mon.toISOString().slice(0,10)}
+function loadWeekMeta(d){
+  try{const raw=localStorage.getItem(weekKey(d));return raw?JSON.parse(raw):{shopsNeeded:[],wfhDays:[],dayReqs:{},dayEvents:{}}}
+  catch(e){return {shopsNeeded:[],wfhDays:[],dayReqs:{},dayEvents:{}}}
+}
+function saveWeekMeta(d,meta){
+  try{localStorage.setItem(weekKey(d),JSON.stringify(meta))}
+  catch(e){toast('Storage error: '+e.message,true)}
+}
+function pruneOldWeeks(){
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-56);
+  for(let i=localStorage.length-1;i>=0;i--){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith('crfo_w_')){
+      const ds=k.replace('crfo_w_','');
+      if(ds<cutoff.toISOString().slice(0,10))localStorage.removeItem(k);
     }
   }
 }
 
-function showStorageError(msg){
-  var t=document.getElementById('toast');
-  if(!t)return;
-  t.textContent=msg;
-  t.style.background='var(--danger)';
-  t.style.color='#fff';
-  t.classList.add('show');
-  setTimeout(function(){t.classList.remove('show');t.style.background='';t.style.color='';},4000);
+// ========== DATE HELPERS ==========
+function getMonday(d){const dt=new Date(d);const day=dt.getDay();const diff=dt.getDate()-day+(day===0?-6:1);dt.setDate(diff);dt.setHours(0,0,0,0);return dt}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r}
+function fmtDate(d){const dt=typeof d==='string'?new Date(d+'T00:00:00'):d;return dt.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}
+function fmtDateISO(d){const dt=typeof d==='string'?new Date(d+'T00:00:00'):d;return dt.toISOString().slice(0,10)}
+function daysBetween(d1,d2){return Math.floor((new Date(d2)-new Date(d1))/(86400000))}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+const DAYNAMES=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+
+// ========== TABS ==========
+document.querySelector('.tab-bar').addEventListener('click',e=>{
+  const btn=e.target.closest('.tab-btn');if(!btn)return;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('pg-'+btn.dataset.tab).classList.add('active');
+  renderPage(btn.dataset.tab);
+});
+function renderPage(tab){
+  switch(tab){
+    case 'status':renderStatus();break;
+    case 'week':renderWeek();break;
+    case 'upcoming':renderUpcoming();break;
+    case 'history':renderHistory();break;
+    case 'shops':renderShops();break;
+    case 'rules':renderRules();break;
+    case 'perf':renderPerf();break;
+  }
 }
 
-function defS(){
-  return {
-    shops:[],visits:[],events:[],upcoming:[],
-    constraints:[
-      {id:'c1',text:'Based in Canton, Baltimore MD. Son is dropped at daycare in Nottingham MD at 8am most days.',enabled:true},
-      {id:'c2',text:'Daycare pickup is between 5:00pm and 5:45pm. Partner can cover pickup if needed — if an overnight stay or late return makes scheduling sense, suggest it.',enabled:true},
-      {id:'c3',text:'Must leave any shop by 3pm latest on days when doing pickup, to allow time to get home and avoid peak traffic.',enabled:true},
-      {id:'c4',text:'Spends 2-3 hours at each shop per visit.',enabled:true},
-      {id:'c5',text:'Targets at least 2 work-from-home days per week.',enabled:true},
-      {id:'c6',text:'On single-shop days, may wait 30-90 minutes at home after daycare dropoff for morning traffic to clear before departing.',enabled:true},
-      {id:'c7',text:'For very distant shops (e.g. T-Body in Mt. Clare WV at ~2.5hrs each way), suggest staying overnight nearby if it saves excessive driving and partner can handle pickup. Flag this as an option rather than assuming.',enabled:true}
-    ],
-    rules:[
-      {id:'r1',text:'T-Body (Mt. Clare WV) and Suburban Fredericksburg: visit once per month only. Skip in weekly suggestions unless overdue or explicitly flagged as needed this week.',enabled:true},
-      {id:'r2',text:'ABD Gaithersburg and ABD Frederick are a natural same-day pairing — efficient route, visit together when possible.',enabled:true},
-      {id:'r3',text:"Bucky's Auto Body (Martinsburg WV) and JR's Auto Body (Winchester VA) are a natural same-day pairing.",enabled:true},
-      {id:'r4',text:"ABD Frederick can alternatively be paired with either Bucky's or JR's on the same day instead of Gaithersburg.",enabled:true},
-      {id:'r5',text:"CarCraft Collision (Springfield VA) and Suburban Herndon can be done in one day but this pairing is less common — only suggest if both are overdue or flagged.",enabled:true},
-      {id:'r6',text:'ABD Bethesda is visited less frequently than other shops. Deprioritize in weekly suggestions unless it is overdue.',enabled:true}
-    ],
-    traffic:[
-      {id:'t1',text:'Any commute out of Baltimore between 6:30–8:45am, or into Baltimore between 3:45–6:30pm, should add approximately 20 minutes to the estimated drive time.',enabled:true},
-      {id:'t2',text:'Any leg of a commute on I-495 or I-95 in the DC/Northern Virginia area should add approximately 30 minutes to that leg of the drive.',enabled:true},
-      {id:'t3',text:'Driver primarily uses standard major highway routes but will use live GPS to avoid issues in real time. Do not overcompensate for traffic — apply the above adjustments once and trust that GPS will handle the rest.',enabled:true}
-    ]
-  };
-}
-function save(){localStorage.setItem(SKEY,JSON.stringify(S));}
-
-// Migrate old state missing fields
-if(!S.constraints){S.constraints=defS().constraints;save();}
-if(!S.rules){S.rules=defS().rules;save();}
-if(!S.traffic){S.traffic=defS().traffic;save();}
-
-// Prune stale week meta on load
-pruneOldWeekMeta();
-
-// ─── WEEK META ────────────────────────────────────────────────────────────────
-var wo=0;
-function wKey(){return 'crw_'+wStart(wo);}
-function getMeta(){try{var r=localStorage.getItem(wKey());return r?JSON.parse(r):defMeta();}catch(e){return defMeta();}}
-function defMeta(){return {neededShops:[],wfhDays:[],dayReq:{}};}
-function saveMeta(m){
-  try{localStorage.setItem(wKey(),JSON.stringify(m));}
-  catch(e){showStorageError('Could not save week data.');}
+// ========== STATUS PAGE ==========
+function shopStatus(shop){
+  const now=todayISO();
+  const monthStart=now.slice(0,8)+'01';
+  const shopVisits=S.visits.filter(v=>v.shopId===shop.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const last=shopVisits.length?shopVisits[0]:null;
+  const visitedThisMonth=shopVisits.some(v=>v.date>=monthStart);
+  const daysAgo=last?daysBetween(last.date,now):null;
+  let urgency='red';
+  if(visitedThisMonth&&daysAgo!==null&&daysAgo<=14)urgency='green';
+  else if(visitedThisMonth)urgency='yellow';
+  return {last,visitedThisMonth,daysAgo,urgency,visitCount:shopVisits.length};
 }
 
-// Prune week meta keys older than 8 weeks to prevent localStorage bloat
-function pruneOldWeekMeta(){
-  try{
-    var cutoff=new Date();cutoff.setDate(cutoff.getDate()-(8*7));
-    var cutoffStr=cutoff.toISOString().slice(0,10);
-    Object.keys(localStorage).forEach(function(k){
-      if(k.indexOf('crw_')===0){
-        var weekDate=k.slice(4);
-        if(weekDate<cutoffStr)localStorage.removeItem(k);
-      }
-    });
-  }catch(e){}
-}
-
-// ─── PENDING STATE ────────────────────────────────────────────────────────────
-var pShop=null,pEdit=null,pDayDate=null,pRuleId=null,pConstraintId=null;
-
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
-function today(){return new Date().toISOString().slice(0,10);}
-function daysBetween(a,b){return Math.round((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);}
-function fmtDate(d){if(!d)return '-';return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
-function wStart(off){var d=new Date(),diff=d.getDate()-d.getDay()+(off*7);return new Date(new Date().setDate(diff)).toISOString().slice(0,10);}
-function getWeekDays(){var ws=new Date(wStart(wo)+'T12:00:00'),days=[];for(var i=1;i<=5;i++){var d=new Date(ws);d.setDate(ws.getDate()+i);days.push(d.toISOString().slice(0,10));}return days;}
-function lastVisit(sid){var vs=S.visits.filter(function(v){return v.shopId===sid;});if(!vs.length)return null;return vs.sort(function(a,b){return b.date.localeCompare(a.date);})[0].date;}
-function visitedThisMonth(sid){var n=new Date(),ms=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-01';return S.visits.some(function(v){return v.shopId===sid&&v.date>=ms;});}
-
-function buildPromptContext(){
-  var t=today(),days=getWeekDays(),dnames=['Mon','Tue','Wed','Thu','Fri'],meta=getMeta();
-  var constraints=S.constraints.filter(function(c){return c.enabled;}).map(function(c){return '- '+c.text;}).join('\n');
-  var rules=S.rules.filter(function(r){return r.enabled;}).map(function(r){return '- '+r.text;}).join('\n');
-  var traffic=(S.traffic||[]).filter(function(t){return t.enabled;}).map(function(t){return '- '+t.text;}).join('\n');
-  var shopStatus=S.shops.map(function(shop){
-    var last=lastVisit(shop.id),d=last?daysBetween(last,t):null,tm=visitedThisMonth(shop.id);
-    return '- '+shop.name+' ('+shop.location+', ~'+(shop.drive||'?')+' min): '+(d!==null?d+' days ago':'NEVER VISITED')+(tm?' [visited this month]':' [NOT YET THIS MONTH]');
-  }).join('\n');
-  var neededNames=meta.neededShops.map(function(id){var s=S.shops.find(function(x){return x.id===id;});return s?s.name:'';}).filter(Boolean);
-  var wfhLabels=meta.wfhDays.map(function(d){var i=days.indexOf(d);return i>=0?dnames[i]:d;});
-  var dayReqLines=days.map(function(d,i){var dr=(meta.dayReq&&meta.dayReq[d])||[];if(!dr.length)return '';return dnames[i]+': must visit '+dr.map(function(r){return timingToPromptText(r.timing,r.timingTime,r.name);}).join(', ');}).filter(Boolean);
-  var blockedLabels=days.filter(function(d){return S.upcoming.some(function(u){return d>=u.start&&d<=u.end;});}).map(function(d){var i=days.indexOf(d);return dnames[i];});
-  var otherEvs=S.events.filter(function(e){return days.indexOf(e.date)>=0;}).map(function(e){var i=days.indexOf(e.date);return dnames[i]+': '+timingToPromptText(e.timing,e.timingTime,e.desc);});
-  return {constraints:constraints,rules:rules,traffic:traffic,shopStatus:shopStatus,neededNames:neededNames,wfhLabels:wfhLabels,dayReqLines:dayReqLines,blockedLabels:blockedLabels,otherEvs:otherEvs,days:days,dnames:dnames};
-}
-
-// ─── INIT ─────────────────────────────────────────────────────────────────────
-document.getElementById('hDate').innerHTML=new Date().toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})+'<br>'+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
-document.querySelectorAll('.modal-overlay').forEach(function(m){m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('open');});});
-renderAll();
-
-function renderAll(){renderDash();renderWeek();renderUpcoming();renderHistory();renderManage();renderRules();}
-function switchTab(n){
-  var tabs=['dashboard','planner','upcoming','history','manage','rules'];
-  document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',tabs[i]===n);});
-  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
-  document.getElementById('page-'+n).classList.add('active');
-}
-function openM(id){document.getElementById(id).classList.add('open');}
-function closeM(id){document.getElementById(id).classList.remove('open');}
-function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(function(){t.classList.remove('show');},2000);}
-
-// ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function renderDash(){
-  var t=today(),ov=0,vi=0,ds=0;
-  var sorted=S.shops.slice().sort(function(a,b){
-    var la=lastVisit(a.id),lb=lastVisit(b.id);
-    return (lb?daysBetween(lb,t):9999)-(la?daysBetween(la,t):9999);
+function renderStatus(){
+  const el=document.getElementById('pg-status');
+  if(!S.shops.length){el.innerHTML='<div style="text-align:center;padding:40px;color:#7a7a9a"><p>No shops added yet.</p><p style="margin-top:8px">Go to the SHOPS tab to add your locations.</p></div>';return}
+  const sorted=[...S.shops].map(s=>({...s,status:shopStatus(s)})).sort((a,b)=>{
+    const ord={red:0,yellow:1,green:2};
+    if(ord[a.status.urgency]!==ord[b.status.urgency])return ord[a.status.urgency]-ord[b.status.urgency];
+    if(a.status.daysAgo===null)return -1;if(b.status.daysAgo===null)return 1;
+    return b.status.daysAgo-a.status.daysAgo;
   });
-  sorted.forEach(function(s){
-    var last=lastVisit(s.id),days=last?daysBetween(last,t):null,tm=visitedThisMonth(s.id);
-    if(tm)vi++;else if(days===null||days>30)ov++;else if(days>23)ds++;
+  let h='<h2 style="margin-bottom:12px">Shop Status</h2>';
+  sorted.forEach(s=>{
+    const st=s.status;
+    const daysText=st.daysAgo===null?'NEVER':''+st.daysAgo+' day'+(st.daysAgo===1?'':'s')+' ago';
+    const badgeClass=st.urgency==='green'?'badge-green':st.urgency==='yellow'?'badge-yellow':'badge-red';
+    const monthBadge=st.visitedThisMonth?'<span class="badge badge-green">This month</span>':'<span class="badge badge-red">Not this month</span>';
+    h+='<div class="card '+st.urgency+'" data-shop-id="'+esc(s.id)+'">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center">';
+    h+='<div><div class="card-title">'+esc(s.name)+'</div><div class="card-sub">'+esc(s.location)+'</div></div>';
+    h+='<div style="text-align:right"><span class="badge '+badgeClass+'">'+daysText+'</span><br>'+monthBadge+'</div></div>';
+    h+='<div style="margin-top:8px"><button class="btn btn-primary btn-sm log-visit-btn" data-id="'+esc(s.id)+'">LOG VISIT</button></div>';
+    h+='</div>';
   });
-  document.getElementById('s-overdue').textContent=ov;
-  document.getElementById('s-visited').textContent=vi;
-  document.getElementById('s-soon').textContent=ds;
-  document.getElementById('s-total').textContent=S.shops.length;
-  var list=document.getElementById('shopList');
-  if(!S.shops.length){list.innerHTML='<div class="empty-state">No shops yet.<br>Add shops in the SHOPS tab.</div>';return;}
-  list.innerHTML=sorted.map(function(shop){
-    var last=lastVisit(shop.id),days=last?daysBetween(last,t):null,tm=visitedThisMonth(shop.id);
-    var sc='status-ok',dc='ok',dt=days!==null?String(days):'',dl='DAYS AGO';
-    if(days===null){sc='status-danger';dc='never';dt='NEVER';dl='VISITED';}
-    else if(!tm&&days>30){sc='status-danger';dc='danger';}
-    else if(!tm&&days>23){sc='status-warn';dc='warn';}
-    return '<div class="shop-card '+sc+'">' +
-      '<div class="shop-info">' +
-        '<div class="shop-name">'+esc(shop.name)+'</div>' +
-        '<div class="shop-meta">'+esc(shop.location)+(shop.drive?' &middot; ~'+shop.drive+' min':'')+'</div>' +
-        (last?'<div class="shop-meta">Last: '+fmtDate(last)+'</div>':'') +
-      '</div>' +
-      '<div style="text-align:right">' +
-        '<div class="shop-days '+dc+'">'+dt+'</div>' +
-        '<div class="days-label">'+dl+'</div>' +
-        '<button class="log-btn" data-sid="'+shop.id+'">LOG</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-
-  list.querySelectorAll('.log-btn').forEach(function(btn){
-    btn.addEventListener('click',function(e){e.stopPropagation();openLog(this.dataset.sid);});
-  });
-  list.querySelectorAll('.shop-card').forEach(function(card){
-    var sid=card.querySelector('.log-btn').dataset.sid;
-    card.addEventListener('click',function(){openLog(sid);});
+  el.innerHTML=h;
+  el.querySelectorAll('.log-visit-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>openLogVisit(btn.dataset.id));
   });
 }
 
-// ─── LOG / EDIT VISIT ─────────────────────────────────────────────────────────
-function openLog(sid){pShop=sid;var shop=S.shops.find(function(s){return s.id===sid;});document.getElementById('mLogTitle').textContent='LOG VISIT - '+(shop?shop.name.toUpperCase():'');document.getElementById('mLogDate').value=today();document.getElementById('mLogNotes').value='';openM('mLog');}
-function confirmLog(){var date=isoDate(document.getElementById('mLogDate').value),notes=document.getElementById('mLogNotes').value.trim();if(!date)return;S.visits.push({id:uid('v'),shopId:pShop,date:date,notes:notes});save();closeM('mLog');renderDash();renderHistory();showToast('VISIT LOGGED');}
-function openEdit(id){var v=S.visits.find(function(x){return x.id===id;});if(!v)return;pEdit=id;document.getElementById('mEditDate').value=v.date;document.getElementById('mEditNotes').value=v.notes||'';openM('mEdit');}
-function confirmEdit(){var v=S.visits.find(function(x){return x.id===pEdit;});if(!v)return;var date=isoDate(document.getElementById('mEditDate').value);if(!date)return;v.date=date;v.notes=document.getElementById('mEditNotes').value.trim();save();closeM('mEdit');renderHistory();renderDash();showToast('VISIT UPDATED');}
-function delVisit(id){S.visits=S.visits.filter(function(v){return v.id!==id;});save();renderHistory();renderDash();}
+function openLogVisit(shopId){
+  const shop=S.shops.find(s=>s.id===shopId);if(!shop)return;
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML='<h3>Log Visit — '+esc(shop.name)+'</h3>'
+    +'<label>Date</label><input type="date" id="m-visit-date" value="'+todayISO()+'">'
+    +'<label>Notes (optional)</label><textarea id="m-visit-notes" rows="3" placeholder="What did you cover?"></textarea>'
+    +'<button class="btn btn-primary btn-block" id="m-visit-save">SAVE VISIT</button>'
+    +'<button class="btn btn-secondary btn-block" id="m-visit-cancel">CANCEL</button>';
+  openModal();
+  document.getElementById('m-visit-save').addEventListener('click',()=>{
+    const date=isoDate(document.getElementById('m-visit-date').value);
+    if(!date){toast('Pick a date',true);return}
+    S.visits.push({id:uid(),shopId,date,notes:document.getElementById('m-visit-notes').value.trim()});
+    save();closeModal();renderPage('status');toast('Visit logged');
+  });
+  document.getElementById('m-visit-cancel').addEventListener('click',closeModal);
+}
 
-// ─── WEEK PLANNER ─────────────────────────────────────────────────────────────
-function changeWeek(dir){wo+=dir;renderWeek();}
+// ========== WEEK PAGE ==========
+let currentWeekStart=getMonday(new Date());
 
 function renderWeek(){
-  var days=getWeekDays(),meta=getMeta(),t=today();
-  var dnames=['MON','TUE','WED','THU','FRI'];
-  var ws=new Date(days[0]+'T12:00:00'),we=new Date(days[4]+'T12:00:00');
-  document.getElementById('weekLabel').textContent=ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' - '+we.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  const el=document.getElementById('pg-week');
+  const meta=loadWeekMeta(currentWeekStart);
+  const weekEnd=addDays(currentWeekStart,4);
+  let h='<div class="week-nav">';
+  h+='<button class="btn btn-sm btn-secondary" id="week-prev">&lsaquo; Prev</button>';
+  h+='<h3>'+fmtDate(currentWeekStart)+' — '+fmtDate(weekEnd)+'</h3>';
+  h+='<button class="btn btn-sm btn-secondary" id="week-next">Next &rsaquo;</button>';
+  h+='</div>';
 
-  var wsc=document.getElementById('weekShopChips');
-  wsc.innerHTML=S.shops.length?S.shops.map(function(s){var a=meta.neededShops.indexOf(s.id)>=0;return '<div class="shop-chip'+(a?' selected':'')+'" data-sid="'+s.id+'">'+esc(s.name)+'</div>';}).join(''):'<span style="color:var(--muted);font-size:11px;font-family:var(--mono)">Add shops first</span>';
-  wsc.querySelectorAll('.shop-chip').forEach(function(chip){chip.addEventListener('click',function(){toggleWeekShop(this.dataset.sid,this);});});
+  // Weekly shop needs — shopsNeeded is now [{shopId,note},...] or legacy [id,...]
+  // Normalize legacy format
+  if(meta.shopsNeeded.length&&typeof meta.shopsNeeded[0]==='string'){
+    meta.shopsNeeded=meta.shopsNeeded.map(id=>({shopId:id,note:'anytime'}));
+    saveWeekMeta(currentWeekStart,meta);
+  }
+  const SHOP_NOTES=['off','anytime','AM','PM','full day','most of day'];
+  h+='<div class="week-needs"><h4>SHOPS NEEDED THIS WEEK (tap to cycle)</h4><div id="week-shop-chips">';
+  S.shops.forEach(s=>{
+    const entry=meta.shopsNeeded.find(x=>x.shopId===s.id);
+    const note=entry?entry.note:'off';
+    const on=note!=='off';
+    h+='<span class="chip'+(on?' on':'')+'" data-shop-id="'+esc(s.id)+'" data-note="'+esc(note)+'">'+esc(s.name)+(on?' ('+esc(note)+')':'')+'</span>';
+  });
+  h+='</div>';
+  h+='<h4 style="margin-top:10px">WFH DAYS</h4><div class="wfh-days" id="week-wfh-chips">';
+  DAYNAMES.forEach((dn,i)=>{
+    const dateStr=fmtDateISO(addDays(currentWeekStart,i));
+    const on=meta.wfhDays.includes(dateStr);
+    h+='<span class="wfh-chip'+(on?' on':'')+'" data-date="'+dateStr+'">'+dn.slice(0,3)+'</span>';
+  });
+  h+='</div></div>';
 
-  var wfc=document.getElementById('wfhChips');
-  wfc.innerHTML=days.map(function(date,i){var blocked=S.upcoming.some(function(u){return date>=u.start&&date<=u.end;});var a=meta.wfhDays.indexOf(date)>=0;return '<div class="day-chip'+(a?' selected':'')+'" data-date="'+date+'"'+(blocked?' style="opacity:0.3;pointer-events:none"':'')+'>'+dnames[i]+'</div>';}).join('');
-  wfc.querySelectorAll('.day-chip:not([style*="pointer-events"])').forEach(function(chip){chip.addEventListener('click',function(){toggleWFH(this.dataset.date,this);});});
+  // Days
+  for(let i=0;i<5;i++){
+    const dayDate=addDays(currentWeekStart,i);
+    const dateStr=fmtDateISO(dayDate);
+    const isWFH=meta.wfhDays.includes(dateStr);
+    const reqs=(meta.dayReqs&&meta.dayReqs[dateStr])||[];
+    const evts=(meta.dayEvents&&meta.dayEvents[dateStr])||[];
+    // Check if blocked by upcoming
+    const blocked=S.upcoming.some(u=>dateStr>=u.start&&dateStr<=u.end);
 
-  document.getElementById('weekDays').innerHTML=days.map(function(date,i){
-    var isToday=date===t,blocked=S.upcoming.some(function(u){return date>=u.start&&date<=u.end;});
-    var isWFH=meta.wfhDays.indexOf(date)>=0,dr=(meta.dayReq&&meta.dayReq[date])||[];
-    var evs=S.events.filter(function(e){return e.date===date;}).sort(function(a,b){return(a.time||'').localeCompare(b.time||'');});
-    var badges='';
-    if(blocked)badges+='<span class="day-badge blocked">BLOCKED</span>';
-    if(isWFH)badges+='<span class="day-badge wfh">WFH</span>';
-    dr.forEach(function(r){badges+='<span class="day-badge req">'+esc(r.name)+'</span>';});
-    var evHTML='';
-    dr.forEach(function(r){
-      var tl=fmtTimingLabel(r.timing,r.timingTime);
-      evHTML+='<div class="day-event"><div class="ev-time" style="color:var(--accent)">'+(tl||'REQD')+'</div><div class="ev-dot req"></div><div class="ev-text" style="color:var(--accent)">Visit: '+esc(r.name)+'</div><button class="ev-del" data-date="'+date+'" data-rid="'+r.id+'" data-action="remdr">&#10005;</button></div>';
+    h+='<div class="day-block">';
+    h+='<div class="day-header" data-date="'+dateStr+'">';
+    h+='<div><h4>'+DAYNAMES[i]+' '+fmtDate(dayDate)+'</h4>';
+    h+='<div class="day-badges">';
+    if(blocked)h+='<span class="badge badge-grey">BLOCKED</span> ';
+    if(isWFH)h+='<span class="badge" style="background:#1a3a5a;color:#3498db">WFH</span> ';
+    reqs.forEach(r=>{
+      const shop=S.shops.find(s=>s.id===r.shopId);
+      if(shop)h+='<span class="badge" style="background:#3a2a10;color:#e67e22">'+esc(shop.name)+(r.timing?' ('+esc(r.timing)+')':'')+'</span> ';
     });
-    evs.forEach(function(ev){
-      var tl=fmtTimingLabel(ev.timing,ev.timingTime);
-      evHTML+='<div class="day-event"><div class="ev-time">'+(tl||'-')+'</div><div class="ev-dot '+ev.type+'"></div><div class="ev-text">'+esc(ev.desc)+'</div><button class="ev-del" data-eid="'+ev.id+'" data-action="delev">&#10005;</button></div>';
-    });
-    if(!evHTML)evHTML='<div style="color:var(--muted);font-family:var(--mono);font-size:11px;padding:4px 0">No events</div>';
-    return '<div class="day-block"><div class="day-header" onclick="toggleDay(this)"><div class="day-name'+(isToday?' today':'')+'">'+(isToday?'&#9654; ':'')+dnames[i]+' &middot; '+new Date(date+'T12:00:00').getDate()+'</div><div class="badge-row">'+badges+'<span style="color:var(--muted);font-size:18px">&#8250;</span></div></div><div class="day-body" style="display:none"><div class="day-quick"><button class="dq-btn dq-wfh'+(isWFH?' on':'')+'" onclick="toggleWFHDay(\''+date+'\',this)">&#127968; WFH</button><button class="dq-btn dq-req" onclick="openDayReq(\''+date+'\','+i+')">&#128205; REQUIRED VISIT</button></div>'+evHTML+'<button class="add-event-btn" onclick="openAddEv(\''+date+'\')">+ ADD OTHER EVENT</button></div></div>';
-  }).join('');
+    h+='</div></div><span style="color:#7a7a9a">&#9662;</span></div>';
 
-  // Event delegation for delete buttons inside day blocks (avoids apostrophe issues in event descriptions)
-  document.getElementById('weekDays').querySelectorAll('.ev-del').forEach(function(btn){
-    btn.addEventListener('click',function(e){
-      e.stopPropagation();
-      if(this.dataset.action==='delev'){delEvent(this.dataset.eid);}
-      else if(this.dataset.action==='remdr'){removeDayReq(this.dataset.date,this.dataset.rid);}
+    h+='<div class="day-body" id="day-body-'+dateStr+'">';
+    // Required visits for this day
+    h+='<div style="margin-bottom:8px"><button class="btn btn-sm btn-secondary add-day-req" data-date="'+dateStr+'">+ Required Visit</button></div>';
+    reqs.forEach((r,ri)=>{
+      const shop=S.shops.find(s=>s.id===r.shopId);
+      h+='<div class="ev-row"><span>📍 '+esc(shop?shop.name:'?')+(r.timing?' — '+esc(r.timing):'')+'</span>';
+      h+='<button class="btn btn-sm btn-danger del-day-req" data-date="'+dateStr+'" data-idx="'+ri+'">✕</button></div>';
+    });
+    // Events
+    h+='<div style="margin:8px 0"><button class="btn btn-sm btn-secondary add-day-ev" data-date="'+dateStr+'">+ Add Event</button></div>';
+    evts.forEach((ev,ei)=>{
+      h+='<div class="ev-row"><span>'+esc(ev.title)+(ev.timing?' — '+esc(ev.timing):'')+'</span>';
+      h+='<button class="btn btn-sm btn-danger del-day-ev" data-date="'+dateStr+'" data-idx="'+ei+'">✕</button></div>';
+    });
+    h+='</div></div>';
+  }
+
+  // Actions
+  h+='<div style="margin-top:16px">';
+  h+='<button class="btn btn-primary btn-block" id="gen-prompt">📋 GENERATE & COPY SCHEDULE PROMPT</button>';
+  h+='<button class="btn btn-secondary btn-block" id="preview-prompt">👁 PREVIEW PROMPT</button>';
+  h+='<div id="prompt-preview-area" style="display:none"></div>';
+  h+='</div>';
+
+  el.innerHTML=h;
+
+  // Event listeners — week nav
+  document.getElementById('week-prev').addEventListener('click',()=>{currentWeekStart=addDays(currentWeekStart,-7);renderWeek()});
+  document.getElementById('week-next').addEventListener('click',()=>{currentWeekStart=addDays(currentWeekStart,7);renderWeek()});
+
+  // Shop need chips
+  el.querySelectorAll('#week-shop-chips .chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const m=loadWeekMeta(currentWeekStart);
+      // Normalize legacy
+      if(m.shopsNeeded.length&&typeof m.shopsNeeded[0]==='string')m.shopsNeeded=m.shopsNeeded.map(id=>({shopId:id,note:'anytime'}));
+      const sid=chip.dataset.shopId;
+      const cur=chip.dataset.note||'off';
+      const idx=SHOP_NOTES.indexOf(cur);
+      const next=SHOP_NOTES[(idx+1)%SHOP_NOTES.length];
+      m.shopsNeeded=m.shopsNeeded.filter(x=>x.shopId!==sid);
+      if(next!=='off')m.shopsNeeded.push({shopId:sid,note:next});
+      saveWeekMeta(currentWeekStart,m);renderWeek();
+    });
+  });
+
+  // WFH chips
+  el.querySelectorAll('#week-wfh-chips .wfh-chip').forEach(chip=>{
+    chip.addEventListener('click',()=>{
+      const m=loadWeekMeta(currentWeekStart);
+      const d=chip.dataset.date;
+      if(m.wfhDays.includes(d))m.wfhDays=m.wfhDays.filter(x=>x!==d);
+      else m.wfhDays.push(d);
+      saveWeekMeta(currentWeekStart,m);renderWeek();
+    });
+  });
+
+  // Day headers toggle
+  el.querySelectorAll('.day-header').forEach(hdr=>{
+    hdr.addEventListener('click',()=>{
+      const body=document.getElementById('day-body-'+hdr.dataset.date);
+      body.classList.toggle('open');
+    });
+  });
+
+  // Add required visit buttons
+  el.querySelectorAll('.add-day-req').forEach(btn=>{
+    btn.addEventListener('click',()=>openDayReq(btn.dataset.date));
+  });
+
+  // Delete required visit buttons
+  el.querySelectorAll('.del-day-req').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const m=loadWeekMeta(currentWeekStart);
+      const d=btn.dataset.date;
+      if(!m.dayReqs)m.dayReqs={};
+      if(!m.dayReqs[d])return;
+      m.dayReqs[d].splice(parseInt(btn.dataset.idx),1);
+      saveWeekMeta(currentWeekStart,m);renderWeek();
+    });
+  });
+
+  // Add event buttons
+  el.querySelectorAll('.add-day-ev').forEach(btn=>{
+    btn.addEventListener('click',()=>openDayEvent(btn.dataset.date));
+  });
+
+  // Delete event buttons
+  el.querySelectorAll('.del-day-ev').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const m=loadWeekMeta(currentWeekStart);
+      const d=btn.dataset.date;
+      if(!m.dayEvents)m.dayEvents={};
+      if(!m.dayEvents[d])return;
+      m.dayEvents[d].splice(parseInt(btn.dataset.idx),1);
+      saveWeekMeta(currentWeekStart,m);renderWeek();
+    });
+  });
+
+  // Prompt buttons
+  document.getElementById('gen-prompt').addEventListener('click',()=>{
+    const prompt=buildPrompt();
+    navigator.clipboard.writeText(prompt).then(()=>{
+      toast('Prompt copied to clipboard! Paste into Claude.');
+    }).catch(()=>{
+      // Fallback: show it for manual copy
+      showPromptPreview(prompt,true);
+      toast('Couldn\'t auto-copy. Select and copy manually.',true);
+    });
+  });
+  document.getElementById('preview-prompt').addEventListener('click',()=>{
+    const area=document.getElementById('prompt-preview-area');
+    if(area.style.display==='none'){
+      showPromptPreview(buildPrompt(),false);
+    }else{
+      area.style.display='none';
+    }
+  });
+}
+
+function showPromptPreview(prompt,forceShow){
+  const area=document.getElementById('prompt-preview-area');
+  area.style.display='block';
+  area.innerHTML='<div class="prompt-box"><textarea id="prompt-textarea">'+esc(prompt)+'</textarea></div>'
+    +'<button class="btn btn-primary btn-sm" id="copy-prompt-btn">📋 COPY TO CLIPBOARD</button>';
+  document.getElementById('copy-prompt-btn').addEventListener('click',()=>{
+    const txt=document.getElementById('prompt-textarea').value;
+    navigator.clipboard.writeText(txt).then(()=>toast('Copied!')).catch(()=>toast('Select and copy manually',true));
+  });
+}
+
+function openDayReq(dateStr){
+  const mc=document.getElementById('modal-content');
+  let h='<h3>Required Visit — '+fmtDate(dateStr)+'</h3>';
+  h+='<label>Shop</label><select id="m-req-shop"><option value="">Select shop...</option>';
+  S.shops.forEach(s=>{h+='<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'});
+  h+='</select>';
+  h+='<label>Timing</label><select id="m-req-timing">';
+  h+='<option value="">No preference</option>';
+  h+='<option value="AM visit">Morning (AM)</option>';
+  h+='<option value="PM visit">Afternoon (PM)</option>';
+  h+='<option value="arrive-by">Must arrive by...</option>';
+  h+='<option value="leave-by">Must leave by...</option>';
+  h+='<option value="after">Must start after...</option>';
+  h+='</select>';
+  h+='<div id="m-req-time-row" style="display:none"><label>Time</label><input type="time" id="m-req-time"></div>';
+  h+='<button class="btn btn-primary btn-block" id="m-req-save">ADD</button>';
+  h+='<button class="btn btn-secondary btn-block" id="m-req-cancel">CANCEL</button>';
+  mc.innerHTML=h;openModal();
+
+  document.getElementById('m-req-timing').addEventListener('change',e=>{
+    document.getElementById('m-req-time-row').style.display=['arrive-by','leave-by','after'].includes(e.target.value)?'block':'none';
+  });
+  document.getElementById('m-req-save').addEventListener('click',()=>{
+    const shopId=document.getElementById('m-req-shop').value;
+    if(!shopId){toast('Pick a shop',true);return}
+    const timingSel=document.getElementById('m-req-timing').value;
+    const timeVal=document.getElementById('m-req-time').value;
+    let timing='';
+    if(timingSel==='AM visit'||timingSel==='PM visit')timing=timingSel;
+    else if(timingSel&&timeVal){
+      const labels={'arrive-by':'must arrive by','leave-by':'must leave by','after':'must start after'};
+      timing=labels[timingSel]+' '+timeVal;
+    }
+    const m=loadWeekMeta(currentWeekStart);
+    if(!m.dayReqs)m.dayReqs={};
+    if(!m.dayReqs[dateStr])m.dayReqs[dateStr]=[];
+    m.dayReqs[dateStr].push({shopId,timing});
+    saveWeekMeta(currentWeekStart,m);closeModal();renderWeek();
+  });
+  document.getElementById('m-req-cancel').addEventListener('click',closeModal);
+}
+
+function openDayEvent(dateStr){
+  const mc=document.getElementById('modal-content');
+  let h='<h3>Add Event — '+fmtDate(dateStr)+'</h3>';
+  h+='<label>Title</label><input type="text" id="m-ev-title" placeholder="e.g. Team call, Doctor appt">';
+  h+='<label>Timing</label><select id="m-ev-timing">';
+  h+='<option value="">No specific time</option>';
+  h+='<option value="AM">Morning (AM)</option>';
+  h+='<option value="PM">Afternoon (PM)</option>';
+  h+='<option value="at">At specific time...</option>';
+  h+='<option value="by">Must be done by...</option>';
+  h+='</select>';
+  h+='<div id="m-ev-time-row" style="display:none"><label>Time</label><input type="time" id="m-ev-time"></div>';
+  h+='<button class="btn btn-primary btn-block" id="m-ev-save">ADD</button>';
+  h+='<button class="btn btn-secondary btn-block" id="m-ev-cancel">CANCEL</button>';
+  mc.innerHTML=h;openModal();
+
+  document.getElementById('m-ev-timing').addEventListener('change',e=>{
+    document.getElementById('m-ev-time-row').style.display=['at','by'].includes(e.target.value)?'block':'none';
+  });
+  document.getElementById('m-ev-save').addEventListener('click',()=>{
+    const title=document.getElementById('m-ev-title').value.trim();
+    if(!title){toast('Enter a title',true);return}
+    const timingSel=document.getElementById('m-ev-timing').value;
+    const timeVal=document.getElementById('m-ev-time').value;
+    let timing='';
+    if(timingSel==='AM'||timingSel==='PM')timing=timingSel;
+    else if(timingSel==='at'&&timeVal)timing='at '+timeVal;
+    else if(timingSel==='by'&&timeVal)timing='by '+timeVal;
+    const m=loadWeekMeta(currentWeekStart);
+    if(!m.dayEvents)m.dayEvents={};
+    if(!m.dayEvents[dateStr])m.dayEvents[dateStr]=[];
+    m.dayEvents[dateStr].push({id:uid(),title,timing});
+    saveWeekMeta(currentWeekStart,m);closeModal();renderWeek();
+  });
+  document.getElementById('m-ev-cancel').addEventListener('click',closeModal);
+}
+
+// ========== PROMPT BUILDER ==========
+function buildPrompt(){
+  const meta=loadWeekMeta(currentWeekStart);
+  const weekEnd=addDays(currentWeekStart,4);
+  let p='Plan a Mon-Fri work week for a regional manager who visits auto body shops across MD, VA, and WV from a home base in Canton, Baltimore. ';
+  p+='Monthly visit targets vary by shop. Prioritize shops behind their target, then those most overdue, while grouping shops by geography to minimize total drive time.\n\n';
+
+  // Constraints
+  const activeC=S.constraints.filter(c=>c.on);
+  if(activeC.length){p+='CONSTRAINTS:\n';activeC.forEach(c=>{p+='- '+c.text+'\n'});p+='\n'}
+
+  // Routing
+  const activeR=S.routing.filter(r=>r.on);
+  if(activeR.length){p+='ROUTING RULES:\n';activeR.forEach(r=>{p+='- '+r.text+'\n'});p+='\n'}
+
+  // Traffic
+  const activeT=S.traffic.filter(t=>t.on);
+  if(activeT.length){p+='TRAFFIC RULES:\n';activeT.forEach(t=>{p+='- '+t.text+'\n'});p+='\n'}
+
+  // Shop status
+  const now=todayISO();
+  const monthStart=now.slice(0,8)+'01';
+  p+='SHOP STATUS:\n';
+  S.shops.forEach(s=>{
+    const st=shopStatus(s);
+    const daysText=st.daysAgo===null?'NEVER VISITED':''+st.daysAgo+' day'+(st.daysAgo===1?'':'s')+' ago';
+    const monthText=st.visitedThisMonth?'visited this month':'NOT YET THIS MONTH';
+    p+='- '+s.name+' ('+s.location+', ~'+s.driveMin+' min, target: '+(s.freq||'1x/month')+'): '+daysText+' ['+monthText+']\n';
+  });
+  p+='\n';
+
+  // Week context
+  p+='WEEK: '+fmtDateISO(currentWeekStart)+' to '+fmtDateISO(weekEnd)+'\n';
+
+  // WFH days
+  if(meta.wfhDays.length){
+    p+='WFH days: '+meta.wfhDays.map(d=>fmtDate(d)).join(', ')+'\n';
+  }
+
+  // Shops needed this week
+  if(meta.shopsNeeded.length){
+    const items=meta.shopsNeeded.map(x=>{
+      const s=S.shops.find(sh=>sh.id===(x.shopId||x));
+      const name=s?s.name:'?';
+      const note=(x.note&&x.note!=='anytime')?' ('+x.note+')':'';
+      return name+note;
+    });
+    p+='Must visit this week (flexible on which day unless noted): '+items.join(', ')+'\n';
+    p+='Timing key — AM: ~9:30am-11:30am, PM: ~12:30pm-3:00pm, most of day: ~9:30am-3:00pm, full day: ~8:00am-5:00pm.\n';
+  }
+
+  // Day-specific requirements
+  for(let i=0;i<5;i++){
+    const dateStr=fmtDateISO(addDays(currentWeekStart,i));
+    const reqs=(meta.dayReqs&&meta.dayReqs[dateStr])||[];
+    const evts=(meta.dayEvents&&meta.dayEvents[dateStr])||[];
+    const blocked=S.upcoming.some(u=>dateStr>=u.start&&dateStr<=u.end);
+    const parts=[];
+    if(blocked)parts.push('BLOCKED — unavailable');
+    reqs.forEach(r=>{
+      const shop=S.shops.find(s=>s.id===r.shopId);
+      if(shop)parts.push('must visit '+shop.name+(r.timing?' ('+r.timing+')':''));
+    });
+    evts.forEach(ev=>{
+      parts.push(ev.title+(ev.timing?' ('+ev.timing+')':''));
+    });
+    if(parts.length){
+      p+=DAYNAMES[i]+': '+parts.join('; ')+'\n';
+    }
+  }
+
+  p+='\nGenerate 3 schedule options for this week. For each option, list: departure time, shops visited with approximate arrival/leave times, and whether partner covers dropoff or pickup. No addresses, no drive time breakdowns, no traffic explanations — I already know all that. Just the plan.';
+  p+='\n\nAfter each option, include a simplified version I can send to my boss in this format (shop names only, no cities or addresses — he knows where they are):\nM- location\nTu- location\nW- location\nTh- location\nF- location';
+  return p;
+}
+
+// ========== UPCOMING PAGE ==========
+function renderUpcoming(){
+  const el=document.getElementById('pg-upcoming');
+  let h='<h2 style="margin-bottom:12px">Upcoming Commitments</h2>';
+  h+='<button class="btn btn-primary btn-block" id="add-upcoming" style="margin-bottom:12px">+ ADD COMMITMENT</button>';
+  if(!S.upcoming.length){h+='<p style="color:#7a7a9a;text-align:center;padding:20px">No upcoming commitments. Add multi-day blocks (conferences, travel, etc.) to mark days as unavailable in the week planner.</p>'}
+  S.upcoming.sort((a,b)=>a.start.localeCompare(b.start)).forEach(u=>{
+    h+='<div class="card grey">';
+    h+='<div class="card-title">'+esc(u.title)+'</div>';
+    h+='<div class="card-sub">'+fmtDate(u.start)+' — '+fmtDate(u.end)+'</div>';
+    if(u.notes)h+='<div class="card-meta">'+esc(u.notes)+'</div>';
+    h+='<button class="btn btn-danger btn-sm del-upcoming" data-id="'+esc(u.id)+'" style="margin-top:6px">REMOVE</button>';
+    h+='</div>';
+  });
+  el.innerHTML=h;
+  document.getElementById('add-upcoming').addEventListener('click',openAddUpcoming);
+  el.querySelectorAll('.del-upcoming').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      S.upcoming=S.upcoming.filter(u=>u.id!==btn.dataset.id);save();renderUpcoming();toast('Removed');
     });
   });
 }
 
-function toggleDay(h){var b=h.nextElementSibling;b.style.display=b.style.display==='none'?'block':'none';}
-function toggleWeekShop(sid,chip){var meta=getMeta(),idx=meta.neededShops.indexOf(sid);if(idx>=0){meta.neededShops.splice(idx,1);chip.classList.remove('selected');}else{meta.neededShops.push(sid);chip.classList.add('selected');}saveMeta(meta);}
-function toggleWFH(date,chip){var meta=getMeta(),idx=meta.wfhDays.indexOf(date);if(idx>=0){meta.wfhDays.splice(idx,1);chip.classList.remove('selected');}else{meta.wfhDays.push(date);chip.classList.add('selected');}saveMeta(meta);renderWeek();}
-function toggleWFHDay(date,btn){var meta=getMeta(),idx=meta.wfhDays.indexOf(date);if(idx>=0){meta.wfhDays.splice(idx,1);btn.classList.remove('on');}else{meta.wfhDays.push(date);btn.classList.add('on');}saveMeta(meta);renderWeek();}
-
-// Timing helpers
-function fmtTimingLabel(timing,time){
-  if(!timing||timing==='')return '';
-  if(timing==='am')return 'AM visit';
-  if(timing==='pm')return 'PM visit';
-  var t12=time?fmtTime12(time):'?';
-  if(timing==='arrive_by'||timing==='at')return 'by '+t12;
-  if(timing==='leave_by'||timing==='by')return 'leave by '+t12;
-  if(timing==='after')return 'after '+t12;
-  return '';
-}
-function fmtTime12(t){if(!t)return '';var p=t.split(':'),h=parseInt(p[0]),m=p[1],ampm=h>=12?'PM':'AM';h=h%12||12;return h+':'+m+' '+ampm;}
-function timingToPromptText(timing,time,desc){
-  if(!timing||timing==='')return desc;
-  var t12=time?fmtTime12(time):'';
-  if(timing==='am')return desc+' (morning — AM only)';
-  if(timing==='pm')return desc+' (afternoon — PM only)';
-  if(timing==='arrive_by'||timing==='at')return desc+' (must arrive/start by '+t12+')';
-  if(timing==='leave_by'||timing==='by')return desc+' (must be done/leave by '+t12+')';
-  if(timing==='after')return desc+' (cannot start before '+t12+')';
-  return desc;
+function openAddUpcoming(){
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML='<h3>Add Commitment</h3>'
+    +'<label>Title</label><input type="text" id="m-up-title" placeholder="e.g. SEMA Conference">'
+    +'<label>Start Date</label><input type="date" id="m-up-start">'
+    +'<label>End Date</label><input type="date" id="m-up-end">'
+    +'<label>Notes</label><textarea id="m-up-notes" rows="2"></textarea>'
+    +'<button class="btn btn-primary btn-block" id="m-up-save">ADD</button>'
+    +'<button class="btn btn-secondary btn-block" id="m-up-cancel">CANCEL</button>';
+  openModal();
+  document.getElementById('m-up-save').addEventListener('click',()=>{
+    const title=document.getElementById('m-up-title').value.trim();
+    const start=isoDate(document.getElementById('m-up-start').value);
+    const end=isoDate(document.getElementById('m-up-end').value);
+    if(!title||!start||!end){toast('Fill in all fields',true);return}
+    S.upcoming.push({id:uid(),title,start,end,notes:document.getElementById('m-up-notes').value.trim()});
+    save();closeModal();renderUpcoming();toast('Added');
+  });
+  document.getElementById('m-up-cancel').addEventListener('click',closeModal);
 }
 
-// Day req timing select watcher
-document.getElementById('mDayReqTiming').addEventListener('change',function(){
-  var v=this.value,grp=document.getElementById('mDayReqTimeGroup'),lbl=document.getElementById('mDayReqTimeLabel');
-  var needsTime=v==='arrive_by'||v==='leave_by'||v==='after';
-  grp.style.display=needsTime?'block':'none';
-  if(v==='arrive_by')lbl.textContent='MUST ARRIVE BY';
-  else if(v==='leave_by')lbl.textContent='MUST LEAVE BY';
-  else if(v==='after')lbl.textContent='CANNOT START BEFORE';
+// ========== HISTORY PAGE ==========
+function renderHistory(){
+  const el=document.getElementById('pg-history');
+  let h='<h2 style="margin-bottom:12px">Visit History</h2>';
+
+  // Filter
+  h+='<div class="filter-row"><select id="hist-filter"><option value="">All Shops</option>';
+  S.shops.forEach(s=>{h+='<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>'});
+  h+='</select></div>';
+
+  h+='<div id="hist-list"></div>';
+  el.innerHTML=h;
+  document.getElementById('hist-filter').addEventListener('change',renderHistoryList);
+  renderHistoryList();
+}
+
+function renderHistoryList(){
+  const filter=document.getElementById('hist-filter').value;
+  const el=document.getElementById('hist-list');
+  let visits=[...S.visits].sort((a,b)=>b.date.localeCompare(a.date));
+  if(filter)visits=visits.filter(v=>v.shopId===filter);
+
+  if(!visits.length){el.innerHTML='<p style="color:#7a7a9a;text-align:center;padding:20px">No visits logged yet.</p>';return}
+
+  let h='';
+  visits.forEach(v=>{
+    const shop=S.shops.find(s=>s.id===v.shopId);
+    h+='<div class="card" style="border-left-color:#3498db">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:flex-start">';
+    h+='<div><div class="card-title">'+esc(shop?shop.name:'Unknown Shop')+'</div>';
+    h+='<div class="card-sub">'+fmtDate(v.date)+'</div>';
+    if(v.notes)h+='<div class="card-meta">'+esc(v.notes)+'</div>';
+    h+='</div>';
+    h+='<div style="display:flex;gap:4px">';
+    h+='<button class="btn btn-sm btn-secondary edit-visit" data-id="'+esc(v.id)+'">EDIT</button>';
+    h+='<button class="btn btn-sm btn-danger del-visit" data-id="'+esc(v.id)+'">✕</button>';
+    h+='</div></div></div>';
+  });
+  el.innerHTML=h;
+
+  el.querySelectorAll('.edit-visit').forEach(btn=>{
+    btn.addEventListener('click',()=>openEditVisit(btn.dataset.id));
+  });
+  el.querySelectorAll('.del-visit').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      S.visits=S.visits.filter(v=>v.id!==btn.dataset.id);save();renderHistoryList();toast('Deleted');
+    });
+  });
+}
+
+function openEditVisit(visitId){
+  const v=S.visits.find(x=>x.id===visitId);if(!v)return;
+  const shop=S.shops.find(s=>s.id===v.shopId);
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML='<h3>Edit Visit — '+esc(shop?shop.name:'')+'</h3>'
+    +'<label>Date</label><input type="date" id="m-editv-date" value="'+esc(v.date)+'">'
+    +'<label>Notes</label><textarea id="m-editv-notes" rows="3">'+esc(v.notes||'')+'</textarea>'
+    +'<button class="btn btn-primary btn-block" id="m-editv-save">SAVE</button>'
+    +'<button class="btn btn-secondary btn-block" id="m-editv-cancel">CANCEL</button>';
+  openModal();
+  document.getElementById('m-editv-save').addEventListener('click',()=>{
+    v.date=isoDate(document.getElementById('m-editv-date').value)||v.date;
+    v.notes=document.getElementById('m-editv-notes').value.trim();
+    save();closeModal();renderHistoryList();toast('Updated');
+  });
+  document.getElementById('m-editv-cancel').addEventListener('click',closeModal);
+}
+
+// ========== SHOPS PAGE ==========
+function renderShops(){
+  const el=document.getElementById('pg-shops');
+  let h='<h2 style="margin-bottom:12px">Manage Shops</h2>';
+  h+='<button class="btn btn-primary btn-block" id="add-shop" style="margin-bottom:12px">+ ADD SHOP</button>';
+
+  S.shops.forEach(s=>{
+    h+='<div class="card" id="shop-card-'+esc(s.id)+'">';
+    h+='<div class="card-title">'+esc(s.name)+'</div>';
+    h+='<div class="card-sub">'+esc(s.location)+'</div>';
+    h+='<div class="card-meta">~'+esc(''+s.driveMin)+' min from Canton · Target: '+esc(s.freq||'1x/month')+'</div>';
+    h+='<div style="display:flex;gap:6px;margin-top:6px">';
+    h+='<button class="btn btn-sm btn-secondary edit-shop" data-id="'+esc(s.id)+'">EDIT</button>';
+    h+='<button class="btn btn-sm btn-danger remove-shop" data-id="'+esc(s.id)+'">REMOVE</button>';
+    h+='</div>';
+    h+='<div class="confirm-row" id="confirm-shop-'+esc(s.id)+'" style="display:none">';
+    h+='<span class="msg">Remove '+esc(s.name)+' and all visit history?</span>';
+    h+='<button class="btn btn-sm btn-danger confirm-yes-shop" data-id="'+esc(s.id)+'">YES</button>';
+    h+='<button class="btn btn-sm btn-secondary confirm-no-shop" data-id="'+esc(s.id)+'">NO</button>';
+    h+='</div></div>';
+  });
+  el.innerHTML=h;
+
+  document.getElementById('add-shop').addEventListener('click',()=>openShopModal());
+  el.querySelectorAll('.edit-shop').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const s=S.shops.find(x=>x.id===btn.dataset.id);
+      if(s)openShopModal(s);
+    });
+  });
+  el.querySelectorAll('.remove-shop').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.getElementById('confirm-shop-'+btn.dataset.id).style.display='flex';
+    });
+  });
+  el.querySelectorAll('.confirm-yes-shop').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const id=btn.dataset.id;
+      S.shops=S.shops.filter(s=>s.id!==id);
+      S.visits=S.visits.filter(v=>v.shopId!==id);
+      save();renderShops();toast('Shop removed');
+    });
+  });
+  el.querySelectorAll('.confirm-no-shop').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.getElementById('confirm-shop-'+btn.dataset.id).style.display='none';
+    });
+  });
+}
+
+function openShopModal(existing){
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML='<h3>'+(existing?'Edit':'Add')+' Shop</h3>'
+    +'<label>Name</label><input type="text" id="m-shop-name" value="'+(existing?esc(existing.name):'')+'" placeholder="e.g. ABD Frederick">'
+    +'<label>Location</label><input type="text" id="m-shop-loc" value="'+(existing?esc(existing.location):'')+'" placeholder="e.g. Frederick, MD">'
+    +'<label>Drive Time from Canton (minutes)</label><input type="number" id="m-shop-drive" value="'+(existing?existing.driveMin:'')+'" placeholder="e.g. 60">'
+    +'<label>Visit Frequency</label><input type="text" id="m-shop-freq" value="'+(existing?esc(existing.freq||''):'')+'" placeholder="e.g. 2x/month, 1-2x/month">'
+    +'<button class="btn btn-primary btn-block" id="m-shop-save">SAVE</button>'
+    +'<button class="btn btn-secondary btn-block" id="m-shop-cancel">CANCEL</button>';
+  openModal();
+  document.getElementById('m-shop-save').addEventListener('click',()=>{
+    const name=document.getElementById('m-shop-name').value.trim();
+    const loc=document.getElementById('m-shop-loc').value.trim();
+    const drive=parseInt(document.getElementById('m-shop-drive').value)||0;
+    if(!name||!loc){toast('Name and location required',true);return}
+    const freq=document.getElementById('m-shop-freq').value.trim()||'1x/month';
+    if(existing){existing.name=name;existing.location=loc;existing.driveMin=drive;existing.freq=freq}
+    else{S.shops.push({id:uid(),name,location:loc,driveMin:drive,freq})}
+    save();closeModal();renderShops();toast(existing?'Updated':'Shop added');
+  });
+  document.getElementById('m-shop-cancel').addEventListener('click',closeModal);
+}
+
+// ========== RULES PAGE ==========
+function renderRules(){
+  const el=document.getElementById('pg-rules');
+  let h='<h2 style="margin-bottom:12px">Rules & Constraints</h2>';
+  h+='<p style="font-size:12px;color:#7a7a9a;margin-bottom:16px">Everything here is fed directly into the schedule prompt. What you see is exactly what the AI gets.</p>';
+
+  // Constraints
+  h+='<div class="rule-section constraints"><h3 style="color:#3498db">Personal Constraints</h3>';
+  h+=renderRuleList(S.constraints,'c');
+  h+='<button class="btn btn-sm btn-secondary add-rule" data-type="c" style="margin-top:4px">+ ADD CONSTRAINT</button></div>';
+
+  // Routing
+  h+='<div class="rule-section routing"><h3 style="color:#e67e22">Routing Rules</h3>';
+  h+=renderRuleList(S.routing,'r');
+  h+='<button class="btn btn-sm btn-secondary add-rule" data-type="r" style="margin-top:4px">+ ADD ROUTING RULE</button></div>';
+
+  // Traffic
+  h+='<div class="rule-section traffic"><h3 style="color:#2ecc71">Traffic Rules</h3>';
+  h+=renderRuleList(S.traffic,'t');
+  h+='<button class="btn btn-sm btn-secondary add-rule" data-type="t" style="margin-top:4px">+ ADD TRAFFIC RULE</button></div>';
+
+  el.innerHTML=h;
+
+  // Toggle listeners
+  el.querySelectorAll('.rule-toggle').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const arr=getRuleArr(btn.dataset.rtype);
+      const item=arr.find(x=>x.id===btn.dataset.id);
+      if(item){item.on=!item.on;save();renderRules()}
+    });
+  });
+
+  // Edit listeners
+  el.querySelectorAll('.rule-edit').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const arr=getRuleArr(btn.dataset.rtype);
+      const item=arr.find(x=>x.id===btn.dataset.id);
+      if(item)openRuleEdit(item,btn.dataset.rtype);
+    });
+  });
+
+  // Delete listeners
+  el.querySelectorAll('.rule-del').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const rtype=btn.dataset.rtype;
+      if(rtype==='c')S.constraints=S.constraints.filter(x=>x.id!==btn.dataset.id);
+      else if(rtype==='r')S.routing=S.routing.filter(x=>x.id!==btn.dataset.id);
+      else S.traffic=S.traffic.filter(x=>x.id!==btn.dataset.id);
+      save();renderRules();toast('Deleted');
+    });
+  });
+
+  // Add listeners
+  el.querySelectorAll('.add-rule').forEach(btn=>{
+    btn.addEventListener('click',()=>openRuleAdd(btn.dataset.type));
+  });
+}
+
+function renderRuleList(arr,rtype){
+  let h='';
+  arr.forEach(item=>{
+    h+='<div class="rule-card'+(item.on?'':' disabled')+'">';
+    h+='<div class="rule-text">'+esc(item.text)+'</div>';
+    h+='<div class="rule-actions">';
+    h+='<button class="btn btn-sm '+(item.on?'btn-secondary':'btn-primary')+' rule-toggle" data-id="'+esc(item.id)+'" data-rtype="'+rtype+'">'+(item.on?'ON':'OFF')+'</button>';
+    h+='<button class="btn btn-sm btn-secondary rule-edit" data-id="'+esc(item.id)+'" data-rtype="'+rtype+'">✏️</button>';
+    h+='<button class="btn btn-sm btn-danger rule-del" data-id="'+esc(item.id)+'" data-rtype="'+rtype+'">✕</button>';
+    h+='</div></div>';
+  });
+  return h;
+}
+
+function getRuleArr(rtype){
+  if(rtype==='c')return S.constraints;
+  if(rtype==='r')return S.routing;
+  return S.traffic;
+}
+
+function openRuleEdit(item,rtype){
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML='<h3>Edit Rule</h3>'
+    +'<textarea id="m-rule-text" rows="4">'+esc(item.text)+'</textarea>'
+    +'<button class="btn btn-primary btn-block" id="m-rule-save">SAVE</button>'
+    +'<button class="btn btn-secondary btn-block" id="m-rule-cancel">CANCEL</button>';
+  openModal();
+  document.getElementById('m-rule-save').addEventListener('click',()=>{
+    const txt=document.getElementById('m-rule-text').value.trim();
+    if(!txt){toast('Rule text required',true);return}
+    item.text=txt;save();closeModal();renderRules();toast('Updated');
+  });
+  document.getElementById('m-rule-cancel').addEventListener('click',closeModal);
+}
+
+function openRuleAdd(rtype){
+  const mc=document.getElementById('modal-content');
+  const labels={c:'Constraint',r:'Routing Rule',t:'Traffic Rule'};
+  mc.innerHTML='<h3>Add '+labels[rtype]+'</h3>'
+    +'<textarea id="m-rule-text" rows="4" placeholder="Write in plain language..."></textarea>'
+    +'<button class="btn btn-primary btn-block" id="m-rule-save">ADD</button>'
+    +'<button class="btn btn-secondary btn-block" id="m-rule-cancel">CANCEL</button>';
+  openModal();
+  document.getElementById('m-rule-save').addEventListener('click',()=>{
+    const txt=document.getElementById('m-rule-text').value.trim();
+    if(!txt){toast('Rule text required',true);return}
+    const arr=getRuleArr(rtype);
+    arr.push({id:uid(),text:txt,on:true});
+    save();closeModal();renderRules();toast('Added');
+  });
+  document.getElementById('m-rule-cancel').addEventListener('click',closeModal);
+}
+
+// ========== PERFORMANCE PAGE ==========
+let perfChart=null;
+let selectedPeriodId=null;
+
+function renderPerf(){
+  const el=document.getElementById('pg-perf');
+  const perfShops=S.shops.filter(s=>s.id!=='s3');
+  const N=perfShops.length; // 8
+  let h='<h2 style="margin-bottom:12px">Performance</h2>';
+
+  // Period selector
+  h+='<div class="period-select">';
+  h+='<select id="perf-period-sel" style="flex:1"><option value="">Select period...</option>';
+  S.fiscalPeriods.sort((a,b)=>b.start.localeCompare(a.start)).forEach(p=>{
+    h+='<option value="'+esc(p.id)+'"'+(p.id===selectedPeriodId?' selected':'')+'>'+esc(p.name)+' ('+p.start+' to '+p.end+')</option>';
+  });
+  h+='</select>';
+  h+='<button class="btn btn-sm btn-primary" id="add-period-btn">+ PERIOD</button>';
+  h+='<button class="btn btn-sm btn-danger" id="del-period-btn">✕</button>';
+  h+='</div>';
+
+  // Data entry grid for selected period
+  const period=S.fiscalPeriods.find(p=>p.id===selectedPeriodId);
+  if(period){
+    // Count hits for this period
+    let pSales=0,pEbitda=0;
+    h+='<h3 style="font-size:14px;margin-bottom:8px">'+esc(period.name)+'</h3>';
+    h+='<div class="perf-grid">';
+    perfShops.forEach(s=>{
+      const rec=perfGet(period.id,s.id);
+      const visits=countVisits(s.id,period.start,period.end);
+      if(rec.sales)pSales++;
+      if(rec.ebitda)pEbitda++;
+      h+='<div class="perf-row">';
+      h+='<div class="perf-shop">'+esc(s.name)+'</div>';
+      h+='<div class="perf-checks">';
+      h+='<label class="perf-check'+(rec.sales?' hit':'')+'"><input type="checkbox" data-shop="'+esc(s.id)+'" data-field="sales"'+(rec.sales?' checked':'')+'>Sales</label>';
+      h+='<label class="perf-check'+(rec.ebitda?' hit':'')+'"><input type="checkbox" data-shop="'+esc(s.id)+'" data-field="ebitda"'+(rec.ebitda?' checked':'')+'>EBITDA</label>';
+      h+='</div>';
+      h+='<div class="perf-visits">'+visits+' visit'+(visits===1?'':'s')+'</div>';
+      h+='</div>';
+    });
+    h+='</div>';
+    // Period summary
+    h+='<div class="perf-summary" style="grid-template-columns:repeat(3,1fr)">';
+    h+='<div class="perf-stat"><div class="val" style="color:#3498db">'+pSales+'/'+N+'</div><div class="lbl">Sales Budget</div></div>';
+    h+='<div class="perf-stat"><div class="val" style="color:#e67e22">'+pEbitda+'/'+N+'</div><div class="lbl">EBITDA Budget</div></div>';
+    h+='<div class="perf-stat"><div class="val" style="color:#2ecc71">'+(pSales+pEbitda)+'/'+(N*2)+'</div><div class="lbl">Overall</div></div>';
+    h+='</div>';
+  }
+
+  // Chart
+  if(S.fiscalPeriods.length>=1){
+    h+='<h3 style="font-size:14px;margin:16px 0 8px">Visits & Budget Performance by Period</h3>';
+    h+='<div class="chart-container"><canvas id="perf-chart"></canvas></div>';
+
+    // All-time summary
+    const periodsWithData=[...new Set(S.perfData.filter(r=>r.shopId!=='s3').map(r=>r.periodId))];
+    const pdCount=periodsWithData.length;
+    let allSales=0,allEbitda=0;
+    S.perfData.filter(r=>r.shopId!=='s3').forEach(r=>{if(r.sales)allSales++;if(r.ebitda)allEbitda++});
+    const allTotal=allSales+allEbitda;
+    const allPossible=pdCount*N*2;
+    h+='<div class="perf-summary" style="grid-template-columns:repeat(4,1fr)">';
+    h+='<div class="perf-stat"><div class="val" style="color:#3498db">'+(pdCount?Math.round(allSales/(pdCount*N)*100):0)+'%</div><div class="lbl">Sales Hit Rate</div></div>';
+    h+='<div class="perf-stat"><div class="val" style="color:#e67e22">'+(pdCount?Math.round(allEbitda/(pdCount*N)*100):0)+'%</div><div class="lbl">EBITDA Hit Rate</div></div>';
+    h+='<div class="perf-stat"><div class="val" style="color:#e94560">'+(allPossible?Math.round(allTotal/allPossible*100):0)+'%</div><div class="lbl">Overall Hit Rate</div></div>';
+    h+='<div class="perf-stat"><div class="val" style="color:#2ecc71">'+pdCount+'</div><div class="lbl">Periods w/ Data</div></div>';
+    h+='</div>';
+  }
+
+  if(!S.fiscalPeriods.length){
+    h+='<p style="color:#7a7a9a;text-align:center;padding:20px">Add a fiscal period to start tracking. Check off which shops hit Sales and EBITDA budgets — visit counts come from your history automatically.</p>';
+  }
+
+  el.innerHTML=h;
+
+  // Listeners
+  document.getElementById('perf-period-sel').addEventListener('change',e=>{
+    selectedPeriodId=e.target.value||null;renderPerf();
+  });
+  document.getElementById('add-period-btn').addEventListener('click',openAddPeriod);
+  document.getElementById('del-period-btn').addEventListener('click',()=>{
+    if(!selectedPeriodId)return;
+    S.fiscalPeriods=S.fiscalPeriods.filter(p=>p.id!==selectedPeriodId);
+    S.perfData=S.perfData.filter(r=>r.periodId!==selectedPeriodId);
+    selectedPeriodId=null;save();renderPerf();toast('Period deleted');
+  });
+  el.querySelectorAll('.perf-checks input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      if(!selectedPeriodId)return;
+      perfSet(selectedPeriodId,cb.dataset.shop,cb.dataset.field,cb.checked);
+      renderPerf();
+    });
+  });
+  if(S.fiscalPeriods.length>=1)drawPerfChart();
+}
+
+// Perf data helpers — simple and explicit
+function perfGet(periodId,shopId){
+  const rec=S.perfData.find(r=>r.periodId===periodId&&r.shopId===shopId);
+  return rec||{sales:false,ebitda:false};
+}
+
+function perfSet(periodId,shopId,field,value){
+  let rec=S.perfData.find(r=>r.periodId===periodId&&r.shopId===shopId);
+  if(!rec){rec={id:uid(),periodId,shopId,sales:false,ebitda:false};S.perfData.push(rec)}
+  rec[field]=value;
+  save();
+}
+
+function countVisits(shopId,start,end){
+  return S.visits.filter(v=>v.shopId===shopId&&v.date>=start&&v.date<=end).length;
+}
+
+function openAddPeriod(){
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML='<h3>Add Fiscal Period</h3>'
+    +'<label>Name</label><input type="text" id="m-per-name" placeholder="e.g. FY26 P3 (March)">'
+    +'<label>Start Date</label><input type="date" id="m-per-start">'
+    +'<label>End Date</label><input type="date" id="m-per-end">'
+    +'<button class="btn btn-primary btn-block" id="m-per-save">ADD</button>'
+    +'<button class="btn btn-secondary btn-block" id="m-per-cancel">CANCEL</button>';
+  openModal();
+  document.getElementById('m-per-save').addEventListener('click',()=>{
+    const name=document.getElementById('m-per-name').value.trim();
+    const start=isoDate(document.getElementById('m-per-start').value);
+    const end=isoDate(document.getElementById('m-per-end').value);
+    if(!name||!start||!end){toast('Fill in all fields',true);return}
+    const p={id:uid(),name,start,end};
+    S.fiscalPeriods.push(p);selectedPeriodId=p.id;
+    save();closeModal();renderPerf();toast('Period added');
+  });
+  document.getElementById('m-per-cancel').addEventListener('click',closeModal);
+}
+
+function drawPerfChart(){
+  const canvas=document.getElementById('perf-chart');
+  if(!canvas)return;
+  if(perfChart){perfChart.destroy();perfChart=null}
+
+  const perfShops=S.shops.filter(s=>s.id!=='s3');
+  const N=perfShops.length;
+  const sorted=[...S.fiscalPeriods].sort((a,b)=>a.start.localeCompare(b.start));
+  const labels=sorted.map(p=>p.name);
+
+  // Per period: total visits across all shops, sales hit count, ebitda hit count
+  const totalVisits=sorted.map(p=>perfShops.reduce((sum,s)=>sum+countVisits(s.id,p.start,p.end),0));
+  const salesPct=sorted.map(p=>{
+    let hits=0;perfShops.forEach(s=>{if(perfGet(p.id,s.id).sales)hits++});
+    return Math.round(hits/N*100);
+  });
+  const ebitdaPct=sorted.map(p=>{
+    let hits=0;perfShops.forEach(s=>{if(perfGet(p.id,s.id).ebitda)hits++});
+    return Math.round(hits/N*100);
+  });
+  const overallPct=sorted.map(p=>{
+    let hits=0;perfShops.forEach(s=>{const r=perfGet(p.id,s.id);if(r.sales)hits++;if(r.ebitda)hits++});
+    return Math.round(hits/(N*2)*100);
+  });
+
+  perfChart=new Chart(canvas,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {type:'bar',label:'Total Visits',data:totalVisits,backgroundColor:'rgba(52,152,219,0.5)',borderColor:'rgba(52,152,219,1)',borderWidth:1,yAxisID:'y1',order:4},
+        {type:'line',label:'Sales Hit %',data:salesPct,borderColor:'#3498db',borderWidth:2,pointRadius:4,tension:0.3,yAxisID:'y',order:1},
+        {type:'line',label:'EBITDA Hit %',data:ebitdaPct,borderColor:'#e67e22',borderWidth:2,pointRadius:4,tension:0.3,yAxisID:'y',order:2},
+        {type:'line',label:'Overall Hit %',data:overallPct,borderColor:'#2ecc71',borderWidth:3,pointRadius:5,tension:0.3,yAxisID:'y',order:3}
+      ]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{
+        legend:{labels:{color:'#e0e0e0',font:{size:11}}},
+        tooltip:{callbacks:{label:ctx=>ctx.dataset.yAxisID==='y1'?ctx.parsed.y+' visits':ctx.parsed.y+'%'}}
+      },
+      scales:{
+        y:{position:'left',min:0,max:100,ticks:{color:'#7a7a9a',callback:v=>v+'%'},grid:{color:'#1a2a4a'},title:{display:true,text:'Hit Rate %',color:'#7a7a9a'}},
+        y1:{position:'right',min:0,ticks:{color:'#7a7a9a',stepSize:1},grid:{display:false},title:{display:true,text:'Total Visits',color:'#7a7a9a'}},
+        x:{ticks:{color:'#7a7a9a',maxRotation:45},grid:{color:'#1a2a4a'}}
+      }
+    }
+  });
+}
+
+// ========== MODAL ==========
+function openModal(){document.getElementById('modal-overlay').classList.add('show')}
+function closeModal(){document.getElementById('modal-overlay').classList.remove('show')}
+document.getElementById('modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('modal-overlay'))closeModal();
 });
 
-// Event timing select show/hide
-function toggleEvTimeInput(){
-  var v=document.getElementById('mEvTiming').value;
-  var grp=document.getElementById('mEvTimeGroup'),lbl=document.getElementById('mEvTimeLabel');
-  var needsTime=v==='at'||v==='by'||v==='after';
-  grp.style.display=needsTime?'block':'none';
-  if(v==='at')lbl.textContent='STARTS AT';
-  else if(v==='by')lbl.textContent='MUST BE DONE BY';
-  else if(v==='after')lbl.textContent='CANNOT START BEFORE';
-}
-
-function openDayReq(date,dayIdx){
-  pDayDate=date;
-  var dn=['Monday','Tuesday','Wednesday','Thursday','Friday'];
-  document.getElementById('mDayReqTitle').textContent='REQUIRED VISIT - '+dn[dayIdx].toUpperCase();
-  var meta=getMeta(),existing=(meta.dayReq&&meta.dayReq[date])||[];
-  var chipsEl=document.getElementById('mDayReqChips');
-  chipsEl.innerHTML=S.shops.map(function(s){
-    var a=existing.some(function(r){return r.id===s.id;});
-    return '<div class="shop-chip'+(a?' selected':'')+'" data-id="'+s.id+'">'+esc(s.name)+'</div>';
-  }).join('');
-  chipsEl.querySelectorAll('.shop-chip').forEach(function(chip){
-    chip.addEventListener('click',function(){this.classList.toggle('selected');});
-  });
-  // Reset timing fields
-  var existingTiming=existing.length&&existing[0].timing?existing[0].timing:'';
-  var existingTime=existing.length&&existing[0].timingTime?existing[0].timingTime:'';
-  document.getElementById('mDayReqTiming').value=existingTiming;
-  document.getElementById('mDayReqTime').value=existingTime;
-  var needsTime=existingTiming==='arrive_by'||existingTiming==='leave_by'||existingTiming==='after';
-  document.getElementById('mDayReqTimeGroup').style.display=needsTime?'block':'none';
-  openM('mDayReq');
-}
-
-function confirmDayReq(){
-  var meta=getMeta();if(!meta.dayReq)meta.dayReq={};
-  var chips=document.querySelectorAll('#mDayReqChips .shop-chip.selected'),sel=[];
-  var timing=document.getElementById('mDayReqTiming').value;
-  var timingTime=document.getElementById('mDayReqTime').value;
-  chips.forEach(function(c){
-    var sid=c.dataset.id;
-    var shop=S.shops.find(function(s){return s.id===sid;});
-    if(shop)sel.push({id:sid,name:shop.name,timing:timing,timingTime:timingTime});
-  });
-  meta.dayReq[pDayDate]=sel;saveMeta(meta);closeM('mDayReq');renderWeek();showToast('REQUIRED VISITS SET');
-}
-
-function removeDayReq(date,sid){var meta=getMeta();if(!meta.dayReq)meta.dayReq={};meta.dayReq[date]=(meta.dayReq[date]||[]).filter(function(r){return r.id!==sid;});saveMeta(meta);renderWeek();}
-
-function openAddEv(date){
-  document.getElementById('mEvDate').value=date;
-  document.getElementById('mEvTiming').value='am';
-  document.getElementById('mEvTime').value='';
-  document.getElementById('mEvTimeGroup').style.display='none';
-  document.getElementById('mEvDesc').value='';
-  openM('mEvent');
-}
-
-function confirmEvent(){
-  var date=isoDate(document.getElementById('mEvDate').value),desc=document.getElementById('mEvDesc').value.trim(),type=document.getElementById('mEvType').value;
-  var timing=document.getElementById('mEvTiming').value,timingTime=document.getElementById('mEvTime').value;
-  if(!date||!desc)return;
-  S.events.push({id:uid('e'),date:date,timing:timing,timingTime:timingTime,desc:desc,type:type});
-  save();closeM('mEvent');renderWeek();showToast('EVENT ADDED');
-}
-function delEvent(id){S.events=S.events.filter(function(e){return e.id!==id;});save();renderWeek();}
-
-// ─── PROMPT PREVIEW ───────────────────────────────────────────────────────────
-function buildSuggestPromptString(ctx){
-  return 'Plan a Mon-Fri work week for a regional manager who visits auto body shops across MD, VA, and WV from a home base in Canton, Baltimore. Goal is to visit each shop at least once per month, prioritizing shops not yet visited this month and those most overdue, while grouping shops by geography to minimize total drive time.\n\n'+
-    'CONSTRAINTS:\n'+ctx.constraints+'\n\n'+
-    'ROUTING RULES:\n'+ctx.rules+'\n\n'+
-    'TRAFFIC RULES:\n'+(ctx.traffic||'None.')+'\n\n'+
-    'SHOP STATUS:\n'+(ctx.shopStatus||'No shops.')+'\n\n'+
-    'WEEK: '+ctx.days[0]+' to '+ctx.days[4]+'\n'+
-    (ctx.blockedLabels.length?'BLOCKED: '+ctx.blockedLabels.join(', ')+'\n':'')+
-    (ctx.wfhLabels.length?'WFH SET: '+ctx.wfhLabels.join(', ')+'\n':'')+
-    (ctx.neededNames.length?'NEEDED THIS WEEK: '+ctx.neededNames.join(', ')+'\n':'')+
-    (ctx.dayReqLines.length?'DAY-SPECIFIC: '+ctx.dayReqLines.join('; ')+'\n':'')+
-    (ctx.otherEvs.length?'OTHER EVENTS: '+ctx.otherEvs.join(', ')+'\n':'')+
-    '\nGenerate 1 schedule option for Mon-Fri. Respond in JSON only:\n'+
-    '{"options":[{"approach":"label","plan":"Mon-Fri schedule"}]}';
-}
-
-function previewPrompt(){
-  var preview=document.getElementById('promptPreview');
-  if(preview.style.display==='none'||preview.style.display===''){
-    var ctx=buildPromptContext();
-    document.getElementById('promptPreviewText').value=buildSuggestPromptString(ctx);
-    preview.style.display='block';
-  } else {
-    preview.style.display='none';
-  }
-}
-
-function resetPromptPreview(){
-  var ctx=buildPromptContext();
-  document.getElementById('promptPreviewText').value=buildSuggestPromptString(ctx);
-}
-
-async function submitEditedPrompt(){
-  var prompt=document.getElementById('promptPreviewText').value.trim();
-  if(!prompt)return;
-  document.getElementById('promptPreview').style.display='none';
-  var btn=document.querySelector('.week-suggest-btn'),th=document.getElementById('aiThinking'),oc=document.getElementById('optionsContainer');
-  btn.disabled=true;th.style.display='block';oc.innerHTML='';
-  try{
-    var res=await apiFetch({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]});
-    var data=await res.json();
-    var raw=(data.content||[]).map(function(c){return c.text||'';}).join('');
-    var parsed=null;
-    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){}
-    if(parsed&&parsed.options){
-      oc.innerHTML=parsed.options.map(function(opt,i){
-        return '<div class="option-card" id="opt-'+i+'">' +
-          '<div class="option-header"><div><div class="option-label">OPTION '+(i+1)+'</div><div class="option-approach">'+opt.approach+'</div></div></div>' +
-          '<div class="option-text">'+opt.plan+'</div>' +
-          '<div class="refine-row"><input class="refine-input" id="refine-input-'+i+'" placeholder="e.g. Move Frederick to Thursday..."><button class="refine-btn" onclick="refineOption('+i+',\''+encodeURIComponent(JSON.stringify(opt))+'\')">ADJUST</button></div>' +
-          '<div class="refine-thinking" id="refine-thinking-'+i+'"><span class="dots">Adjusting</span></div>' +
-        '</div>';
-      }).join('');
-    } else {
-      oc.innerHTML='<div class="option-card"><div class="option-text">'+raw+'</div></div>';
-    }
-  }catch(e){oc.innerHTML='<div class="option-card"><div class="option-text">Error submitting prompt. Please try again.</div></div>';}
-  th.style.display='none';btn.disabled=false;
-}
-
-// ─── API FETCH WITH TIMEOUT ───────────────────────────────────────────────────
-async function apiFetch(body, timeoutMs){
-  timeoutMs = timeoutMs || 90000;
-  var timeoutPromise = new Promise(function(_, reject){
-    setTimeout(function(){ reject(new Error('Request timed out. The prompt may be too large — try reducing your rules or try again.')); }, timeoutMs);
-  });
-  var fetchPromise = fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  return Promise.race([fetchPromise, timeoutPromise]);
-}
-
-// ─── AI: 3 OPTIONS ────────────────────────────────────────────────────────────
-async function suggestWeek(){
-  var btn=document.querySelector('.week-suggest-btn'),th=document.getElementById('aiThinking'),oc=document.getElementById('optionsContainer');
-  btn.disabled=true;th.style.display='block';oc.innerHTML='';
-
-  // Cycle status messages so user knows it's still working
-  var messages=['Generating schedule options','Analyzing shop visit history','Applying routing rules','Checking traffic constraints','Building schedule options','Almost done'];
-  var msgEl=th.querySelector('span');
-  var msgIdx=0;
-  var msgTimer=setInterval(function(){
-    msgIdx=(msgIdx+1)%messages.length;
-    msgEl.textContent=messages[msgIdx];
-  }, 8000);
-
-  var ctx=buildPromptContext();
-  var prompt=buildSuggestPromptString(ctx);
-
-  try{
-    var res=await apiFetch({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:prompt}]});
-    clearInterval(msgTimer);
-    var data=await res.json();
-    var raw=(data.content||[]).map(function(c){return c.text||'';}).join('');
-    var parsed=null;
-    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){}
-    if(parsed&&parsed.options){
-      oc.innerHTML=parsed.options.map(function(opt,i){
-        return '<div class="option-card" id="opt-'+i+'">' +
-          '<div class="option-header"><div><div class="option-label">OPTION '+(i+1)+'</div><div class="option-approach">'+opt.approach+'</div></div></div>' +
-          '<div class="option-text">'+opt.plan+'</div>' +
-          '<div class="refine-row">' +
-            '<input class="refine-input" id="refine-input-'+i+'" placeholder="e.g. Move Frederick to Thursday, or I cant do Tuesday...">' +
-            '<button class="refine-btn" onclick="refineOption('+i+',\''+encodeURIComponent(JSON.stringify(opt))+'\')">ADJUST</button>' +
-          '</div>' +
-          '<div class="refine-thinking" id="refine-thinking-'+i+'"><span class="dots">Adjusting</span></div>' +
-        '</div>';
-      }).join('');
-    } else if(raw){
-      oc.innerHTML='<div class="option-card"><div class="option-text">'+raw+'</div></div>';
-    } else if(data.error){
-      oc.innerHTML='<div class="option-card"><div class="option-text">API error: '+esc(data.error.message||'Unknown error')+'</div></div>';
-    }
-  }catch(e){
-    clearInterval(msgTimer);
-    oc.innerHTML='<div class="option-card"><div class="option-text">'+(e.message||'Error generating options. Please try again.')+'</div></div>';
-  }
-  th.style.display='none';btn.disabled=false;
-}
-
-async function refineOption(idx,encodedOpt){
-  var input=document.getElementById('refine-input-'+idx);
-  var note=input.value.trim();
-  if(!note)return;
-  var thinking=document.getElementById('refine-thinking-'+idx);
-  var optText=document.querySelector('#opt-'+idx+' .option-text');
-  var btn=document.querySelector('#opt-'+idx+' .refine-btn');
-  btn.disabled=true;thinking.style.display='block';
-  var original=JSON.parse(decodeURIComponent(encodedOpt));
-  var ctx=buildPromptContext();
-  var prompt='Revise this Mon-Fri shop visit schedule for a regional manager based in Baltimore. Respect all constraints and rules.\n\n'+
-    'CURRENT PLAN ('+original.approach+'):\n'+original.plan+'\n\n'+
-    'CONSTRAINTS:\n'+ctx.constraints+'\n\n'+
-    'ROUTING RULES:\n'+ctx.rules+'\n\n'+
-    'TRAFFIC RULES:\n'+(ctx.traffic||'None.')+'\n\n'+
-    'SHOP STATUS:\n'+(ctx.shopStatus||'No shops.')+'\n\n'+
-    'CHANGE REQUESTED: '+note+'\n\n'+
-    'Return revised Mon-Fri schedule as plain text only.';
-  try{
-    var res=await apiFetch({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]});
-    var data=await res.json();
-    var text=(data.content||[]).map(function(c){return c.text||'';}).join('')||'Error adjusting plan.';
-    optText.textContent=text;
-    input.value='';
-  }catch(e){optText.textContent=(e.message||'Error adjusting plan. Please try again.');}
-  thinking.style.display='none';btn.disabled=false;
-}
-
-// ─── MID-WEEK REPLAN ──────────────────────────────────────────────────────────
-function openReplan(){
-  var days=getWeekDays(),dnames=['Mon','Tue','Wed','Thu','Fri'];
-  document.getElementById('replanDayChips').innerHTML=days.map(function(date,i){
-    return '<div class="shop-chip" onclick="this.classList.toggle(\'selected\')" data-date="'+date+'">'+dnames[i]+' '+new Date(date+'T12:00:00').getDate()+'</div>';
-  }).join('');
-  document.getElementById('replanNote').value='';
-  openM('mReplan');
-}
-
-async function confirmReplan(){
-  var lockedChips=document.querySelectorAll('#replanDayChips .shop-chip.selected');
-  var lockedDates=[];lockedChips.forEach(function(c){lockedDates.push(c.dataset.date);});
-  var note=document.getElementById('replanNote').value.trim();
-  closeM('mReplan');
-  var th=document.getElementById('aiThinking'),oc=document.getElementById('optionsContainer');
-  th.querySelector('span').textContent='Replanning remaining days';
-  th.style.display='block';oc.innerHTML='';
-  document.querySelector('.week-suggest-btn').disabled=true;
-  var ctx=buildPromptContext();
-  var days=getWeekDays(),dnames=['Mon','Tue','Wed','Thu','Fri'];
-  var lockedLabels=lockedDates.map(function(d){var i=days.indexOf(d);return i>=0?dnames[i]:d;});
-  var remainingLabels=days.filter(function(d){return lockedDates.indexOf(d)<0;}).map(function(d){var i=days.indexOf(d);return dnames[i];});
-  var prompt='Replan the remaining days of a work week for a regional manager visiting auto body shops across MD, VA, and WV from Baltimore.\n\n'+
-    'CONSTRAINTS:\n'+ctx.constraints+'\n\n'+
-    'ROUTING RULES:\n'+ctx.rules+'\n\n'+
-    'TRAFFIC RULES:\n'+(ctx.traffic||'None.')+'\n\n'+
-    'SHOP STATUS:\n'+(ctx.shopStatus||'No shops.')+'\n\n'+
-    'WEEK: '+ctx.days[0]+' to '+ctx.days[4]+'\n'+
-    'LOCKED/DONE: '+(lockedLabels.length?lockedLabels.join(', '):'None')+'\n'+
-    'REMAINING: '+(remainingLabels.length?remainingLabels.join(', '):'None')+'\n'+
-    (ctx.neededNames.length?'SHOPS STILL NEEDED: '+ctx.neededNames.join(', ')+'\n':'')+
-    'WHAT CHANGED: '+(note||'Not specified')+'\n'+
-    (ctx.otherEvs.length?'OTHER EVENTS: '+ctx.otherEvs.join(', ')+'\n':'')+
-    '\nGenerate 1 option for the remaining days only. JSON only:\n'+
-    '{"options":[{"approach":"label","plan":"remaining days plan"}]}';
-  try{
-    var res=await apiFetch({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:prompt}]});
-    var data=await res.json();
-    var raw=(data.content||[]).map(function(c){return c.text||'';}).join('');
-    var parsed=null;
-    try{parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());}catch(e){}
-    if(parsed&&parsed.options){
-      oc.innerHTML='<div style="font-family:var(--mono);font-size:11px;color:var(--accent2);margin-bottom:10px;">MID-WEEK REPLAN — remaining days only</div>'+parsed.options.map(function(opt,i){
-        return '<div class="option-card" id="reopt-'+i+'">' +
-          '<div class="option-header"><div><div class="option-label">OPTION '+(i+1)+'</div><div class="option-approach">'+opt.approach+'</div></div></div>' +
-          '<div class="option-text">'+opt.plan+'</div>' +
-          '<div class="refine-row"><input class="refine-input" id="rerefine-input-'+i+'" placeholder="Request an adjustment..."><button class="refine-btn" onclick="refineReplanOption('+i+',\''+encodeURIComponent(JSON.stringify(opt))+'\')">ADJUST</button></div>' +
-          '<div class="refine-thinking" id="rerefine-thinking-'+i+'"><span class="dots">Adjusting</span></div>' +
-        '</div>';
-      }).join('');
-    } else {
-      oc.innerHTML='<div class="option-card"><div class="option-text">'+raw+'</div></div>';
-    }
-  }catch(e){oc.innerHTML='<div class="option-card"><div class="option-text">Error generating replan. Please try again.</div></div>';}
-  th.style.display='none';document.querySelector('.week-suggest-btn').disabled=false;
-}
-
-async function refineReplanOption(idx,encodedOpt){
-  var input=document.getElementById('rerefine-input-'+idx);
-  var note=input.value.trim();if(!note)return;
-  var thinking=document.getElementById('rerefine-thinking-'+idx);
-  var optText=document.querySelector('#reopt-'+idx+' .option-text');
-  var btn=document.querySelector('#reopt-'+idx+' .refine-btn');
-  btn.disabled=true;thinking.style.display='block';
-  var original=JSON.parse(decodeURIComponent(encodedOpt));
-  var ctx=buildPromptContext();
-  var prompt='Revise this partial week schedule. CONSTRAINTS:\n'+ctx.constraints+'\nROUTING RULES:\n'+ctx.rules+'\nCURRENT PLAN: '+original.plan+'\nCHANGE: '+note+'\nReturn revised schedule as plain text only.';
-  try{
-    var res=await apiFetch({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]});
-    var data=await res.json();
-    optText.textContent=(data.content||[]).map(function(c){return c.text||'';}).join('')||'Error.';
-    input.value='';
-  }catch(e){optText.textContent=(e.message||'Error. Please try again.');}
-  thinking.style.display='none';btn.disabled=false;
-}
-
-// ─── UPCOMING ─────────────────────────────────────────────────────────────────
-function renderUpcoming(){
-  var list=document.getElementById('upcomingList');
-  var sorted=S.upcoming.slice().sort(function(a,b){return a.start.localeCompare(b.start);});
-  if(!sorted.length){list.innerHTML='<div class="empty-state">No upcoming commitments.</div>';return;}
-  list.innerHTML=sorted.map(function(u){return '<div class="upcoming-card"><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div class="upcoming-date">'+fmtDate(u.start)+(u.end!==u.start?' - '+fmtDate(u.end):'')+'</div><div class="upcoming-title">'+esc(u.title)+'</div>'+(u.note?'<div class="upcoming-note">'+esc(u.note)+'</div>':'')+'</div><button class="del-btn" onclick="delUpcoming(\''+u.id+'\')">&#10005;</button></div></div>';}).join('');
-}
-function confirmUpcoming(){var title=document.getElementById('mUpTitle').value.trim(),start=isoDate(document.getElementById('mUpStart').value),end=isoDate(document.getElementById('mUpEnd').value),note=document.getElementById('mUpNote').value.trim();if(!title||!start)return;S.upcoming.push({id:uid('u'),title:title,start:start,end:end||start,note:note});save();closeM('mUpcoming');renderUpcoming();renderWeek();showToast('COMMITMENT ADDED');}
-function delUpcoming(id){S.upcoming=S.upcoming.filter(function(u){return u.id!==id;});save();renderUpcoming();renderWeek();showToast('COMMITMENT REMOVED');}
-
-// ─── HISTORY ──────────────────────────────────────────────────────────────────
-function renderHistory(){
-  var list=document.getElementById('historyList');
-  var sorted=S.visits.slice().sort(function(a,b){return b.date.localeCompare(a.date);});
-  if(!sorted.length){list.innerHTML='<div class="empty-state">No visits logged yet.</div>';return;}
-  list.innerHTML=sorted.map(function(v){
-    var shop=S.shops.find(function(s){return s.id===v.shopId;});
-    return '<div class="history-item">' +
-      '<div style="flex:1;min-width:0">' +
-        '<div class="history-shop">'+(shop?esc(shop.name):'Unknown Shop')+'</div>' +
-        '<div class="history-date">'+fmtDate(v.date)+'</div>' +
-        (v.notes?'<div class="history-note">'+esc(v.notes)+'</div>':'') +
-      '</div>' +
-      '<div class="h-actions">' +
-        '<button class="edit-btn" data-vid="'+v.id+'">EDIT</button>' +
-        '<button class="del-btn" data-vid="'+v.id+'" data-del="1">&#10005;</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-
-  // Event delegation — avoids all apostrophe/special char issues in onclick strings
-  list.querySelectorAll('.edit-btn').forEach(function(btn){
-    btn.addEventListener('click',function(){openEdit(this.dataset.vid);});
-  });
-  list.querySelectorAll('.del-btn[data-del]').forEach(function(btn){
-    btn.addEventListener('click',function(){delVisit(this.dataset.vid);});
-  });
-}
-
-// ─── MANAGE SHOPS ─────────────────────────────────────────────────────────────
-function renderManage(){
-  var list=document.getElementById('manageList');
-  if(!S.shops.length){list.innerHTML='<div class="empty-state">No shops yet.</div>';return;}
-  list.innerHTML=S.shops.map(function(s){
-    return '<div class="manage-card">' +
-      '<div><div class="manage-name">'+esc(s.name)+'</div><div class="manage-loc">'+esc(s.location)+(s.drive?' &middot; ~'+s.drive+' min':'')+'</div></div>' +
-      '<button class="remove-btn" data-sid="'+s.id+'">REMOVE</button>' +
-    '</div>';
-  }).join('');
-  list.querySelectorAll('.remove-btn').forEach(function(btn){
-    btn.addEventListener('click',function(){
-      var sid=this.dataset.sid;
-      var shop=S.shops.find(function(s){return s.id===sid;});
-      if(shop)delShop(sid,shop.name);
-    });
-  });
-}
-function openAddShop(){document.getElementById('mShopName').value='';document.getElementById('mShopLoc').value='';document.getElementById('mShopDrive').value='';openM('mShop');}
-function confirmShop(){var name=document.getElementById('mShopName').value.trim(),loc=document.getElementById('mShopLoc').value.trim(),drive=parseInt(document.getElementById('mShopDrive').value)||null;if(!name||!loc)return;S.shops.push({id:uid('s'),name:name,location:loc,drive:drive});save();closeM('mShop');renderManage();renderDash();renderWeek();showToast('SHOP ADDED');}
-function delShop(id,name){
-  // confirm() is blocked in sandboxed iframes, use a custom inline confirm instead
-  var list=document.getElementById('manageList');
-  var cards=list.querySelectorAll('.manage-card');
-  cards.forEach(function(card){
-    var btn=card.querySelector('.remove-btn');
-    if(btn&&btn.getAttribute('onclick')&&btn.getAttribute('onclick').indexOf("'"+id+"'")>=0){
-      card.style.background='rgba(239,68,68,0.1)';
-      card.style.border='1px solid var(--danger)';
-      card.innerHTML='<div style="flex:1"><div class="manage-name" style="color:var(--danger)">Remove '+esc(name)+'?</div><div class="manage-loc">This will delete all visit history for this shop.</div></div>'+
-        '<div style="display:flex;gap:6px">'+
-        '<button class="remove-btn" onclick="confirmDelShop(\''+id+'\')">YES, REMOVE</button>'+
-        '<button style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:5px 10px;font-family:var(--mono);font-size:11px;cursor:pointer;" onclick="renderManage()">CANCEL</button>'+
-        '</div>';
-    }
-  });
-}
-function confirmDelShop(id){S.shops=S.shops.filter(function(s){return s.id!==id;});S.visits=S.visits.filter(function(v){return v.shopId!==id;});save();renderManage();renderDash();renderHistory();renderWeek();}
-
-// ─── RULES & CONSTRAINTS ──────────────────────────────────────────────────────
-function renderRules(){
-  if(!S.constraints)S.constraints=[];
-  if(!S.rules)S.rules=[];
-  if(!S.traffic)S.traffic=[];
-
-  var cl=document.getElementById('constraintsList');
-  cl.innerHTML=S.constraints.length?S.constraints.map(function(c){
-    return '<div class="constraint-card'+(c.enabled?'':' disabled')+'"><div class="rule-top"><div class="rule-text">'+esc(c.text)+'</div><div class="rule-actions"><button class="rule-toggle '+(c.enabled?'active':'inactive')+'" onclick="toggleConstraint(\''+c.id+'\')">'+( c.enabled?'ON':'OFF')+'</button><button class="rule-edit-btn" onclick="openEditConstraint(\''+c.id+'\')">EDIT</button><button class="rule-del-btn" onclick="delConstraint(\''+c.id+'\')">&#10005;</button></div></div></div>';
-  }).join(''):'<div class="empty-state" style="padding:20px 0">No constraints yet.</div>';
-
-  var rl=document.getElementById('rulesList');
-  rl.innerHTML=S.rules.length?S.rules.map(function(r){
-    return '<div class="rule-card'+(r.enabled?'':' disabled')+'"><div class="rule-top"><div class="rule-text">'+esc(r.text)+'</div><div class="rule-actions"><button class="rule-toggle '+(r.enabled?'active':'inactive')+'" onclick="toggleRule(\''+r.id+'\')">'+( r.enabled?'ON':'OFF')+'</button><button class="rule-edit-btn" onclick="openEditRule(\''+r.id+'\')">EDIT</button><button class="rule-del-btn" onclick="delRule(\''+r.id+'\')">&#10005;</button></div></div></div>';
-  }).join(''):'<div class="empty-state" style="padding:20px 0">No rules yet.</div>';
-
-  var tl=document.getElementById('trafficList');
-  tl.innerHTML=S.traffic.length?S.traffic.map(function(t){
-    return '<div class="rule-card'+(t.enabled?'':' disabled')+'" style="border-left-color:var(--ok)"><div class="rule-top"><div class="rule-text">'+esc(t.text)+'</div><div class="rule-actions"><button class="rule-toggle '+(t.enabled?'active':'inactive')+'" onclick="toggleTraffic(\''+t.id+'\')">'+( t.enabled?'ON':'OFF')+'</button><button class="rule-edit-btn" onclick="openEditTraffic(\''+t.id+'\')">EDIT</button><button class="rule-del-btn" onclick="delTraffic(\''+t.id+'\')">&#10005;</button></div></div></div>';
-  }).join(''):'<div class="empty-state" style="padding:20px 0">No traffic rules yet.</div>';
-}
-
-// Constraints CRUD
-function toggleConstraint(id){var c=S.constraints.find(function(x){return x.id===id;});if(!c)return;c.enabled=!c.enabled;save();renderRules();}
-function openAddConstraint(){pConstraintId=null;document.getElementById('mConstraintTitle').textContent='ADD CONSTRAINT';document.getElementById('mConstraintText').value='';openM('mConstraint');}
-function openEditConstraint(id){var c=S.constraints.find(function(x){return x.id===id;});if(!c)return;pConstraintId=id;document.getElementById('mConstraintTitle').textContent='EDIT CONSTRAINT';document.getElementById('mConstraintText').value=c.text;openM('mConstraint');}
-function confirmConstraint(){var text=document.getElementById('mConstraintText').value.trim();if(!text)return;if(pConstraintId){var c=S.constraints.find(function(x){return x.id===pConstraintId;});if(c)c.text=text;}else{S.constraints.push({id:uid('c'),text:text,enabled:true});}save();closeM('mConstraint');renderRules();showToast(pConstraintId?'CONSTRAINT UPDATED':'CONSTRAINT ADDED');}
-function delConstraint(id){S.constraints=S.constraints.filter(function(c){return c.id!==id;});save();renderRules();showToast('CONSTRAINT REMOVED');}
-
-// Rules CRUD
-function toggleRule(id){var r=S.rules.find(function(x){return x.id===id;});if(!r)return;r.enabled=!r.enabled;save();renderRules();}
-function openAddRule(){pRuleId=null;document.getElementById('mRuleTitle').textContent='ADD ROUTING RULE';document.getElementById('mRuleText').value='';openM('mRule');}
-function openEditRule(id){var r=S.rules.find(function(x){return x.id===id;});if(!r)return;pRuleId=id;document.getElementById('mRuleTitle').textContent='EDIT ROUTING RULE';document.getElementById('mRuleText').value=r.text;openM('mRule');}
-function confirmRule(){var text=document.getElementById('mRuleText').value.trim();if(!text)return;if(pRuleId){var r=S.rules.find(function(x){return x.id===pRuleId;});if(r)r.text=text;}else{S.rules.push({id:uid('r'),text:text,enabled:true});}save();closeM('mRule');renderRules();showToast(pRuleId?'RULE UPDATED':'RULE ADDED');}
-function delRule(id){S.rules=S.rules.filter(function(r){return r.id!==id;});save();renderRules();showToast('RULE REMOVED');}
-
-// Traffic CRUD
-var pTrafficId=null;
-function toggleTraffic(id){var t=S.traffic.find(function(x){return x.id===id;});if(!t)return;t.enabled=!t.enabled;save();renderRules();}
-function openAddTraffic(){pTrafficId=null;document.getElementById('mTrafficTitle').textContent='ADD TRAFFIC RULE';document.getElementById('mTrafficText').value='';openM('mTraffic');}
-function openEditTraffic(id){var t=S.traffic.find(function(x){return x.id===id;});if(!t)return;pTrafficId=id;document.getElementById('mTrafficTitle').textContent='EDIT TRAFFIC RULE';document.getElementById('mTrafficText').value=t.text;openM('mTraffic');}
-function confirmTraffic(){var text=document.getElementById('mTrafficText').value.trim();if(!text)return;if(pTrafficId){var t=S.traffic.find(function(x){return x.id===pTrafficId;});if(t)t.text=text;}else{S.traffic.push({id:uid('t'),text:text,enabled:true});}save();closeM('mTraffic');renderRules();showToast(pTrafficId?'TRAFFIC RULE UPDATED':'TRAFFIC RULE ADDED');}
-function delTraffic(id){S.traffic=S.traffic.filter(function(t){return t.id!==id;});save();renderRules();showToast('TRAFFIC RULE REMOVED');}
+// ========== INIT ==========
+loadState();
+pruneOldWeeks();
+renderPage('week');
 </script>
 </body>
 </html>
