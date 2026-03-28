@@ -1984,9 +1984,16 @@ function closeModal(){document.getElementById('modal-overlay').classList.remove(
 document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('modal-overlay'))closeModal()});
 
 // ========== GLOBAL EXPORT/IMPORT ==========
-document.getElementById('g-export').addEventListener('click',()=>{const b=new Blob([JSON.stringify(S,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='cr-field-ops-backup.json';a.click();URL.revokeObjectURL(u);toast('Exported')});
+document.getElementById('g-export').addEventListener('click',()=>{
+  // Collect week metadata from localStorage
+  const weekMeta={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith('crfo_w_')){try{weekMeta[k]=JSON.parse(localStorage.getItem(k))}catch(e){}}}
+  const exportData={...S,_weekMeta:weekMeta};
+  const b=new Blob([JSON.stringify(exportData,null,2)],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='cr-field-ops-backup.json';a.click();URL.revokeObjectURL(u);toast('Exported')});
 document.getElementById('g-import').addEventListener('click',()=>{document.getElementById('g-import-file').click()});
-document.getElementById('g-import-file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const imp=JSON.parse(ev.target.result);if(!imp.shops){toast('Invalid file',true);return}S=imp;save();toast('Imported — reloading...');setTimeout(()=>location.reload(),1000)}catch(err){toast('Error: '+err.message,true)}};r.readAsText(f)});
+document.getElementById('g-import-file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const imp=JSON.parse(ev.target.result);if(!imp.shops){toast('Invalid file',true);return}
+  // Restore week metadata if present
+  if(imp._weekMeta){Object.entries(imp._weekMeta).forEach(([k,v])=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}});delete imp._weekMeta}
+  S=imp;save();toast('Imported — reloading...');setTimeout(()=>location.reload(),1000)}catch(err){toast('Error: '+err.message,true)}};r.readAsText(f)});
 document.getElementById('g-merge').addEventListener('click',()=>{document.getElementById('g-merge-file').click()});
 document.getElementById('g-merge-file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const imp=JSON.parse(ev.target.result);if(!imp.shops){toast('Invalid file',true);return}
   let count=0;
