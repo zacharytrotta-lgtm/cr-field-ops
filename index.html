@@ -217,6 +217,7 @@ label{display:block;font-size:12px;color:#888;margin:8px 0 4px}
   <button class="btn btn-sm btn-secondary" id="g-export">EXPORT DATA</button>
   <button class="btn btn-sm btn-secondary" id="g-import">IMPORT DATA</button>
   <button class="btn btn-sm btn-secondary" id="g-merge" style="color:#2ecc71">MERGE VISITS</button>
+  <button class="btn btn-sm btn-secondary" id="g-ideas" style="color:#f39c12">💡 IDEAS</button>
   <input type="file" id="g-import-file" accept=".json" style="display:none">
   <input type="file" id="g-merge-file" accept=".json" style="display:none">
 </div>
@@ -543,7 +544,14 @@ function openShopModal(existing){
 }
 
 // ========== WEEK PAGE (redesigned: prompt top, itinerary, compact setup) ==========
-let currentWeekStart=getMonday(new Date());
+// Default to next week if it's Friday after noon or weekend
+function getDefaultWeekStart(){
+  const now=new Date();const day=now.getDay();const hr=now.getHours();
+  // Friday (5) after 12pm, Saturday (6), Sunday (0) → show next week
+  if((day===5&&hr>=12)||day===6||day===0){return addDays(getMonday(now),7)}
+  return getMonday(now);
+}
+let currentWeekStart=getDefaultWeekStart();
 
 function getAutoShopsForWeek(){
   const monISO=fmtDateISO(currentWeekStart),friISO=fmtDateISO(addDays(currentWeekStart,4));
@@ -664,6 +672,7 @@ function renderWeek(){
   el.querySelectorAll('.del-day-req').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const m=loadWeekMeta(currentWeekStart);if(m.dayReqs&&m.dayReqs[b.dataset.date])m.dayReqs[b.dataset.date].splice(parseInt(b.dataset.idx),1);saveWeekMeta(currentWeekStart,m);renderWeek()}));
   el.querySelectorAll('.del-day-ev').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const m=loadWeekMeta(currentWeekStart);if(m.dayEvents&&m.dayEvents[b.dataset.date])m.dayEvents[b.dataset.date].splice(parseInt(b.dataset.idx),1);saveWeekMeta(currentWeekStart,m);renderWeek()}));
   el.querySelectorAll('.sched-task-link').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const t=S.tasks.find(x=>x.id===b.dataset.tid);if(t)openTaskModal(t)}));
+  el.querySelectorAll('.itin-task-link').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const t=S.tasks.find(x=>x.id===b.dataset.tid);if(t)openTaskModal(t)}));
 
   document.getElementById('gen-prompt').addEventListener('click',()=>{const p=buildPrompt();navigator.clipboard.writeText(p).then(()=>toast('Prompt copied!')).catch(()=>{showPromptPreview(p);toast('Couldn\'t copy. Use manual copy.',true)})});
   document.getElementById('preview-prompt').addEventListener('click',()=>{const a=document.getElementById('prompt-preview-area');if(a.style.display==='none')showPromptPreview(buildPrompt());else a.style.display='none'});
@@ -683,30 +692,55 @@ function renderItinerary(meta){
   for(let i=0;i<5;i++){
     const ds=fmtDateISO(addDays(currentWeekStart,i));
     const planned=(meta.plannedVisits&&meta.plannedVisits[ds])||[];
+    const reqs=(meta.dayReqs&&meta.dayReqs[ds])||[];
     const isWFH=meta.wfhDays.includes(ds);
     const blocked=S.upcoming.some(u=>ds>=u.start&&ds<=u.end);
     const evts=(meta.dayEvents&&meta.dayEvents[ds])||[];
+    const remoteTasks=S.tasks.filter(t=>t.status==='open'&&t.taskMode!=='onsite'&&(t.dueDate===ds||(isWFH&&!t.dueDate&&t.shopId!=='regional')));
 
     h+='<div class="itin-day"><div class="itin-day-name">'+DAYNAMES[i].slice(0,3)+'</div><div class="itin-day-content">';
 
     if(blocked){
       h+='<span class="badge badge-grey">BLOCKED</span>';
-    } else if(isWFH&&!planned.length){
-      h+='<span style="color:#3498db;font-weight:600">WFH</span>';
-      const remoteTasks=S.tasks.filter(t=>t.status==='open'&&t.taskMode!=='onsite'&&t.dueDate===ds);
-      remoteTasks.forEach(t=>{const tm=TASK_MODES.find(m=>m.id===t.taskMode)||TASK_MODES[3];h+='<div class="itin-task"><span class="badge badge-p'+t.priority+'" style="font-size:9px;padding:1px 4px">P'+t.priority+'</span> '+tm.icon+' '+esc(t.title)+'</div>'});
-    } else if(planned.length){
-      planned.forEach((sid,si)=>{
-        const shop=S.shops.find(s=>s.id===sid);if(!shop)return;
-        h+='<div class="itin-shop-block"><div class="itin-shop-header">';
-        if(planned.length>1)h+='<span class="itin-shop-num">'+(si+1)+'.</span>';
+    } else {
+      if(isWFH) h+='<span style="color:#3498db;font-weight:600;font-size:11px;margin-bottom:2px;display:inline-block">WFH</span>';
+
+      // Planned shop visits with on-site tasks
+      if(planned.length){
+        planned.forEach((sid,si)=>{
+          const shop=S.shops.find(s=>s.id===sid);if(!shop)return;
+          // Check if there's a timing req for this shop
+          const req=reqs.find(r=>r.shopId===sid);
+          h+='<div class="itin-shop-block"><div class="itin-shop-header">';
+          if(planned.length>1)h+='<span class="itin-shop-num">'+(si+1)+'.</span>';
+          h+='<span class="itin-shop-name">'+esc(shop.name)+'</span><span class="itin-drive">~'+shop.driveMin+' min</span></div>';
+          if(req&&req.timing)h+='<div style="font-size:10px;color:#f39c12;margin:1px 0">⏰ '+esc(req.timing)+'</div>';
+          const tasks=S.tasks.filter(t=>t.status==='open'&&t.shopId===sid&&t.taskMode==='onsite').sort((a,b)=>a.priority-b.priority);
+          tasks.forEach(t=>{h+='<div class="itin-task itin-task-link" data-tid="'+esc(t.id)+'" style="cursor:pointer"><span class="badge badge-p'+t.priority+'" style="font-size:9px;padding:1px 4px">P'+t.priority+'</span> '+esc(t.title)+'</div>'});
+          h+='</div>';
+        });
+      }
+
+      // Required visits not already in planned
+      const extraReqs=reqs.filter(r=>!planned.includes(r.shopId));
+      extraReqs.forEach(r=>{
+        const shop=S.shops.find(s=>s.id===r.shopId);if(!shop)return;
+        h+='<div class="itin-shop-block" style="border-left:2px solid #f39c12;padding-left:6px"><div class="itin-shop-header">';
         h+='<span class="itin-shop-name">'+esc(shop.name)+'</span><span class="itin-drive">~'+shop.driveMin+' min</span></div>';
-        const tasks=S.tasks.filter(t=>t.status==='open'&&t.shopId===sid&&t.taskMode==='onsite').sort((a,b)=>a.priority-b.priority);
-        tasks.forEach(t=>{h+='<div class="itin-task"><span class="badge badge-p'+t.priority+'" style="font-size:9px;padding:1px 4px">P'+t.priority+'</span> '+esc(t.title)+'</div>'});
+        if(r.timing)h+='<div style="font-size:10px;color:#f39c12;margin:1px 0">⏰ '+esc(r.timing)+'</div>';
+        const tasks=S.tasks.filter(t=>t.status==='open'&&t.shopId===r.shopId&&t.taskMode==='onsite').sort((a,b)=>a.priority-b.priority);
+        tasks.forEach(t=>{h+='<div class="itin-task itin-task-link" data-tid="'+esc(t.id)+'" style="cursor:pointer"><span class="badge badge-p'+t.priority+'" style="font-size:9px;padding:1px 4px">P'+t.priority+'</span> '+esc(t.title)+'</div>'});
         h+='</div>';
       });
-    } else {
-      h+='<span style="color:#555;font-size:12px">—</span>';
+
+      // Remote tasks — shown on ALL days, not just WFH
+      if(remoteTasks.length){
+        remoteTasks.forEach(t=>{const tm=TASK_MODES.find(m=>m.id===t.taskMode)||TASK_MODES[3];h+='<div class="itin-task itin-task-link" data-tid="'+esc(t.id)+'" style="cursor:pointer;color:#888"><span class="badge badge-p'+t.priority+'" style="font-size:9px;padding:1px 4px">P'+t.priority+'</span> '+tm.icon+' '+esc(t.title)+'</div>'});
+      }
+
+      if(!planned.length&&!extraReqs.length&&!remoteTasks.length&&!evts.length){
+        h+='<span style="color:#555;font-size:12px">—</span>';
+      }
     }
 
     evts.forEach(ev=>{h+='<div class="itin-event">'+esc(ev.title)+(ev.timing?' ('+esc(ev.timing)+')':'')+'</div>'});
@@ -1637,6 +1671,7 @@ function renderTasks(){
   el.querySelectorAll('.task-edit').forEach(b=>{b.addEventListener('click',()=>{const t=S.tasks.find(x=>x.id===b.dataset.id);if(t)openTaskModal(t)})});
   el.querySelectorAll('.task-del').forEach(b=>{b.addEventListener('click',()=>{S.tasks=S.tasks.filter(x=>x.id!==b.dataset.id);save();renderTasks();toast('Deleted')})});
   const vp=el.querySelector('#visit-prep-link');if(vp)vp.addEventListener('click',e=>{e.preventDefault();activeTab='sched';schedView='week';renderTabBar();switchToPage('sched')});
+  el.querySelectorAll('.prep-task-link').forEach(b=>b.addEventListener('click',e=>{e.stopPropagation();const t=S.tasks.find(x=>x.id===b.dataset.tid);if(t)openTaskModal(t)}));
   const at=el.querySelector('#add-template-btn');if(at)at.addEventListener('click',()=>openTemplateModal());
   el.querySelectorAll('.tmpl-toggle').forEach(b=>{b.addEventListener('click',()=>{const t=S.taskTemplates.find(x=>x.id===b.dataset.id);if(t){t.on=!t.on;save();renderTasks()}})});
   el.querySelectorAll('.tmpl-edit').forEach(b=>{b.addEventListener('click',()=>{const t=S.taskTemplates.find(x=>x.id===b.dataset.id);if(t)openTemplateModal(t)})});
@@ -1914,16 +1949,18 @@ function renderVisitPrep(){
     const wm=loadWeekMeta(getMonday(d));
     const planned=(wm.plannedVisits&&wm.plannedVisits[dISO])||[];
     const reqs=(wm.dayReqs&&wm.dayReqs[dISO])||[];
+    const isWFH=wm.wfhDays&&wm.wfhDays.includes(dISO);
     const ids=new Set();
     planned.forEach(s=>ids.add(s));
     reqs.forEach(r=>ids.add(r.shopId));
-    if(ids.size)lookahead.push({date:dISO,shopIds:[...ids],label:i===0?'TODAY':i===1?'TOMORROW':fmtDate(dISO)});
+    const remoteTasks=S.tasks.filter(t=>t.status==='open'&&t.taskMode!=='onsite'&&t.shopId!=='regional'&&(t.dueDate===dISO||(isWFH&&!t.dueDate)));
+    if(ids.size||remoteTasks.length)lookahead.push({date:dISO,shopIds:[...ids],remoteTasks,isWFH,label:i===0?'TODAY':i===1?'TOMORROW':fmtDate(dISO)});
   }
   if(!lookahead.length)return '<div class="visit-prep"><h4>Visit Prep</h4><div style="font-size:12px;color:#888">No shops scheduled. <a href="#" id="visit-prep-link" style="color:#cc6633">Set up schedule &rarr;</a></div></div>';
   const open=S.tasks.filter(t=>t.status==='open');
   let h='<div class="visit-prep"><h4>Visit Prep</h4>';
   lookahead.forEach(day=>{
-    h+='<div style="font-size:10px;color:#cc6633;margin-top:8px;font-weight:700;letter-spacing:1px">'+esc(day.label)+'</div>';
+    h+='<div style="font-size:10px;color:#cc6633;margin-top:8px;font-weight:700;letter-spacing:1px">'+esc(day.label)+(day.isWFH?' <span style="color:#3498db;font-weight:600">WFH</span>':'')+'</div>';
     day.shopIds.forEach(sid=>{
       const shop=S.shops.find(s=>s.id===sid);
       const tasks=open.filter(t=>t.shopId===sid&&t.taskMode==='onsite').sort((a,b)=>a.priority-b.priority);
@@ -1931,12 +1968,21 @@ function renderVisitPrep(){
       if(tasks.length)h+=' <span style="color:#888;font-weight:400">('+tasks.length+' task'+(tasks.length>1?'s':'')+')</span>';
       h+='</div>';
       tasks.forEach(t=>{
-        h+='<div style="font-size:12px;padding:3px 0;display:flex;gap:6px;align-items:center"><span class="badge badge-p'+t.priority+'" style="font-size:10px">P'+t.priority+'</span><span>'+esc(t.title)+'</span>';
+        h+='<div class="prep-task-link" data-tid="'+esc(t.id)+'" style="font-size:12px;padding:3px 0;display:flex;gap:6px;align-items:center;cursor:pointer"><span class="badge badge-p'+t.priority+'" style="font-size:10px">P'+t.priority+'</span><span>'+esc(t.title)+'</span>';
         if(t.assignedTo)h+='<span class="badge badge-delegated" style="font-size:10px">'+esc(t.assignedTo)+'</span>';
         h+='</div>';
       });
       if(!tasks.length)h+='<div style="font-size:11px;color:#888;padding:2px 0">No on-site tasks</div>';
     });
+    // Remote tasks for this day
+    if(day.remoteTasks.length){
+      h+='<div style="font-size:10px;color:#888;margin-top:4px;font-weight:600;letter-spacing:.5px">REMOTE / CALLS / EMAIL</div>';
+      day.remoteTasks.sort((a,b)=>a.priority-b.priority).forEach(t=>{
+        const tm=TASK_MODES.find(m=>m.id===t.taskMode)||TASK_MODES[3];
+        const sh=S.shops.find(s=>s.id===t.shopId);
+        h+='<div class="prep-task-link" data-tid="'+esc(t.id)+'" style="font-size:12px;padding:3px 0;display:flex;gap:6px;align-items:center;cursor:pointer"><span class="badge badge-p'+t.priority+'" style="font-size:10px">P'+t.priority+'</span>'+tm.icon+' <span>'+esc(t.title)+(sh?' · '+esc(sh.name):'')+'</span></div>';
+      });
+    }
   });
   return h+'</div>';
 }
@@ -1986,6 +2032,49 @@ function openTemplateModal(existing){
 function openModal(){document.getElementById('modal-overlay').classList.add('show')}
 function closeModal(){document.getElementById('modal-overlay').classList.remove('show')}
 document.getElementById('modal-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('modal-overlay'))closeModal()});
+
+// ========== IDEAS NOTEPAD ==========
+function loadIdeas(){try{return JSON.parse(localStorage.getItem('crfo_ideas'))||[]}catch(e){return[]}}
+function saveIdeas(ideas){localStorage.setItem('crfo_ideas',JSON.stringify(ideas))}
+
+document.getElementById('g-ideas').addEventListener('click',()=>{
+  const ideas=loadIdeas();
+  const listHtml=ideas.length?ideas.map((n,i)=>`<div style="display:flex;gap:6px;align-items:flex-start;margin-bottom:8px;background:#2d2d2d;padding:8px;border-radius:6px;border-left:3px solid #f39c12">
+    <div style="flex:1"><div style="font-size:12px">${esc(n.text)}</div><div style="font-size:10px;color:#666;margin-top:2px">${fmtDate(n.date)}</div></div>
+    <button class="btn btn-sm" onclick="deleteIdea(${i})" style="padding:2px 6px;font-size:10px;background:#5a2d2d;color:#e74c3c;border:1px solid #e74c3c">✕</button>
+  </div>`).join(''):'<div style="font-size:12px;color:#666;text-align:center;padding:12px">No ideas yet. Jot one down!</div>';
+
+  const mc=document.getElementById('modal-content');
+  mc.innerHTML=`<h3 style="color:#f39c12">💡 Ideas & Notes</h3>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Quick notes for future improvements</div>
+    <div style="display:flex;gap:6px;margin-bottom:12px">
+      <input type="text" id="idea-input" placeholder="Something to improve..." style="flex:1">
+      <button class="btn btn-sm" onclick="addIdea()" style="background:#1e3528;color:#2ecc71;border:1px solid #2ecc71">Add</button>
+    </div>
+    <div id="ideas-list">${listHtml}</div>`;
+  openModal();
+  document.getElementById('idea-input').addEventListener('keydown',e=>{if(e.key==='Enter')addIdea()});
+});
+
+function addIdea(){
+  const input=document.getElementById('idea-input');
+  const text=input.value.trim();
+  if(!text)return;
+  const ideas=loadIdeas();
+  ideas.unshift({text,date:todayISO()});
+  saveIdeas(ideas);
+  input.value='';
+  document.getElementById('g-ideas').click();
+  toast('Idea saved');
+}
+
+function deleteIdea(idx){
+  const ideas=loadIdeas();
+  ideas.splice(idx,1);
+  saveIdeas(ideas);
+  document.getElementById('g-ideas').click();
+  toast('Idea removed');
+}
 
 // ========== GLOBAL EXPORT/IMPORT ==========
 document.getElementById('g-export').addEventListener('click',()=>{
